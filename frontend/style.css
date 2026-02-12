@@ -1,0 +1,68 @@
+/* Sidebar Fixed Position */
+#sidebar {
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #1a2a6c; /* Med Navy */
+    z-index: 1000;
+    padding-top: 20px;
+}
+
+/* Push content to the right so it doesn't hide behind the sidebar */
+.main-content-area {
+    margin-left: 250px; 
+    padding: 20px;
+    width: calc(100% - 250px);
+}
+
+.nav-link {
+    color: #ffffff;
+    padding: 12px 20px;
+    display: block;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.nav-link:hover, .nav-link.active {
+    background: rgba(255,255,255,0.1);
+    border-left: 4px solid #00d4ff;
+}
+:root {
+    --med-navy: #1a2a6c;
+    --med-blue: #0056b3;
+    --clinical-bg: #f0f2f5;
+    --sidebar-width: 250px;
+}
+
+body { background-color: var(--clinical-bg); font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
+
+/* Sidebar Layout */
+#sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    background: var(--med-navy);
+    color: white;
+    transition: all 0.3s;
+    z-index: 1000;
+}
+
+.nav-link { color: rgba(255,255,255,0.7); border-radius: 5px; margin: 5px 15px; }
+.nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
+
+/* Main Content Adjustments */
+#main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+}
+
+/* Clinical Table Styling */
+.table-clinical { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.table-clinical thead { background: var(--med-blue); color: white; }
+
+/* Dashboard Cards */
+.card-clinical { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: 0.3s; }
+.card-clinical:hover { transform: translateY(-5px); }

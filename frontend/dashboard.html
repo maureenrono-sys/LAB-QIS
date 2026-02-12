@@ -3,269 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAB-QIS Professional | ISO 15189:2022</title>
+    <title>Dashboard | Lab-QIS</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        :root {
-            --med-navy: #1a2a6c;
-            --med-blue: #0056b3;
-            --clinical-gray: #f4f7f6;
-            --pure-white: #ffffff;
-        }
-
-        body { 
-            background-color: var(--clinical-gray); 
-            font-family: 'Segoe UI', sans-serif;
-        }
-
-        .navbar { 
-            background-color: var(--med-navy) !important; 
-            border-bottom: 3px solid var(--med-blue);
-        }
-
-        .main-wrapper { margin-top: 80px; padding-bottom: 40px; }
-
-        .card-stat { 
-            border-radius: 12px; 
-            border: none; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-            background: var(--pure-white);
-        }
-
-        .text-navy { color: var(--med-navy); }
-        .bg-med-blue { background-color: var(--med-blue) !important; }
-        
-        /* Chart Container sizing */
-        #chartContainer { min-height: 300px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="#" onclick="loadHomeStats()">
-                <span class="me-2">🧪</span> LAB-QIS Professional
-            </a>
-            <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link active" href="#" onclick="loadHomeStats()">Dashboard</a></li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Departments</a>
-                        <ul class="dropdown-menu shadow">
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Reception')">Reception</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Hematology')">Hematology</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Biochemistry')">Biochemistry</a></li>
-                            </ul>
-                    </li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadQI()">Quality Indicators</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadNC()">NC & CAPA</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadDocs()">Documents</a></li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <span id="userRoleBadge" class="badge bg-light text-dark me-3"></span>
-                    <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
-                </div>
-            </div>
+    <div id="sidebar">
+        <div class="text-center pb-4 border-bottom border-secondary">
+            <h4 class="text-white fw-bold">LAB-QIS</h4>
         </div>
-    </nav>
-
-    <div class="container-fluid main-wrapper px-4" id="contentArea">
-        <div id="statsRow" class="row g-3 mb-4">
-            </div>
-
-        <div class="row g-3">
-            <div class="col-lg-8">
-                <div class="card card-stat p-4 mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold text-navy mb-0">Testing Overview (Volume)</h5>
-                        <span class="badge bg-primary">Weekly Trends</span>
-                    </div>
-                    <canvas id="testingOverviewChart" height="120"></canvas>
-                </div>
-
-                <div class="card card-stat p-0">
-                    <div class="card-header bg-white border-0 pt-3 px-4">
-                        <h5 class="fw-bold text-navy mb-0">Recent Orders / Activity</h5>
-                    </div>
-                    <div class="table-responsive p-3">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr class="small">
-                                    <th>ID</th><th>Type</th><th>Status</th><th>Priority</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recentOrdersTable">
-                                <tr><td>#10345</td><td>CBC</td><td><span class="badge bg-warning text-dark">In Progress</span></td><td>High</td></tr>
-                                <tr><td>#10346</td><td>COVID PCR</td><td><span class="badge bg-success">Completed</span></td><td>Routine</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card card-stat mb-4">
-                    <div class="card-header bg-danger text-white border-0">
-                        <h5 class="mb-0 small fw-bold">⚠️ Critical Alerts</h5>
-                    </div>
-                    <div class="card-body px-0 py-2">
-                        <ul class="list-group list-group-flush small" id="criticalAlertsList">
-                            <li class="list-group-item"><strong>Hematology:</strong> Hemoglobin 6.2 (Critical Low)</li>
-                            <li class="list-group-item"><strong>Biochemistry:</strong> Potassium 6.5 (Critical High)</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="card card-stat mb-4 p-3">
-                    <h6 class="fw-bold text-navy">Lab Instruments Status</h6>
-                    <div class="d-flex justify-content-between mb-2 small">
-                        <span>Sysmex XN-1000</span>
-                        <span class="text-success">● Online</span>
-                    </div>
-                    <div class="d-flex justify-content-between small">
-                        <span>Cobas 6000</span>
-                        <span class="text-warning">● Maintenance</span>
-                    </div>
-                </div>
-
-                <div class="card card-stat p-3">
-                    <h6 class="fw-bold text-navy mb-3">Departmental TAT (Hrs)</h6>
-                    <div class="mb-2">
-                        <div class="d-flex justify-content-between small mb-1"><span>Hematology</span><span>2.5</span></div>
-                        <div class="progress" style="height: 5px;"><div class="progress-bar bg-primary" style="width: 70%"></div></div>
-                    </div>
-                    <div>
-                        <div class="d-flex justify-content-between small mb-1"><span>Biochemistry</span><span>3.8</span></div>
-                        <div class="progress" style="height: 5px;"><div class="progress-bar bg-info" style="width: 90%"></div></div>
-                    </div>
-                </div>
-            </div>
+        <div class="mt-3">
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="departments.html" class="nav-link">Departments</a>
+            <a href="qc.html" class="nav-link">Quality Control</a>
+            <a href="indicators.html" class="nav-link">Quality Indicators</a>
+            <a href="equipment.html" class="nav-link">Equipment Log</a>
+            <a href="nc-capa.html" class="nav-link">NC & CAPA</a>
+            <a href="documents.html" class="nav-link">Documents</a>
+            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
+            <a href="analytics.html" class="nav-link">Risk & Analytics</a>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAB-QIS Professional | ISO 15189:2022</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        :root {
-            --med-navy: #1a2a6c;
-            --med-blue: #0056b3;
-            --clinical-gray: #f4f7f6;
-            --pure-white: #ffffff;
-        }
-
-        body { 
-            background-color: var(--clinical-gray); 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        /* Fixed Top Navbar Styling */
-        .navbar { 
-            background-color: var(--med-navy) !important; 
-            border-bottom: 3px solid var(--med-blue);
-        }
-
-        /* Content spacing for fixed navbar */
-        .main-wrapper { 
-            margin-top: 80px; 
-            padding-bottom: 40px;
-        }
-
-        /* Medical Card Styling */
-        .card-stat { 
-            border-radius: 12px; 
-            border: none; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07); 
-            transition: 0.3s ease;
-            background: var(--pure-white);
-        }
-        .card-stat:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1); 
-        }
-
-        #notifSidebar { 
-            z-index: 2000; 
-            border-left: 4px solid var(--med-blue);
-        }
-
-        .btn-primary { background-color: var(--med-blue); border: none; }
-        .text-navy { color: var(--med-navy); }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top shadow">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="#" onclick="loadHomeStats()">
-                <span class="me-2">🧪</span> LAB-QIS Professional
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadHomeStats()">Dashboard</a></li>
-                    
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="deptDrop" role="button" data-bs-toggle="dropdown">Departments</a>
-                        <ul class="dropdown-menu shadow">
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Reception')">Reception / Specimen Log</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Phlebotomy')">Phlebotomy / Collection</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Hematology')">Hematology</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Biochemistry')">Biochemistry</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Microbiology')">Microbiology</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Serology')">Serology</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Blood Bank')">Blood Bank</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Molecular')">Molecular</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Histology')">Histology</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Quality')">Quality Management</a></li>
-                        </ul>
-                    </li>
-
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadQI()">Quality Indicators</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadNC()">NC & CAPA</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadDocs()">Documents</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadAudits()">SLIPTA Audits</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" onclick="loadAnalytics()">Risk & Analytics</a></li>
-                </ul>
-                
-                <div class="d-flex align-items-center">
-                    <div class="text-white me-4 position-relative" onclick="toggleNotifSidebar()" style="cursor:pointer">
-                        <span class="fs-5">🔔</span>
-                        <span id="notifCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"></span>
-                    </div>
-                    <span id="userRoleBadge" class="badge bg-light text-dark me-3 py-2 px-3"></span>
-                    <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+    <div class="main-content-area">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 id="labNameHeading" class="fw-bold text-navy mb-1">Dashboard</h3>
+                <p class="text-muted mb-0">Operational overview and quality performance snapshot.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="position-relative" onclick="toggleNotifSidebar()" style="cursor:pointer">
+                    <span class="fs-5">🔔</span>
+                    <span id="notifCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"></span>
                 </div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="logout()">Logout</button>
             </div>
         </div>
-    </nav>
 
-    <div class="container main-wrapper">
         <div class="row mb-3">
             <div class="col-12 d-flex justify-content-between align-items-end">
                 <h2 id="labNameDisplay" class="text-navy mb-0">Welcome</h2>
@@ -278,7 +52,7 @@
         <div id="contentArea" class="mt-4 p-4 bg-white rounded shadow-sm min-vh-100">
             <div class="text-center text-muted py-5">
                 <h4>Laboratory Quality Information System</h4>
-                <p>Select a module or department from the navigation bar to start.</p>
+                <p>Lab-QIS is a Quality Intelligence System for clinical laboratories that turns raw lab data into compliance-ready insights. It provides real-time monitoring of quality indicators, turnaround times, and non-conformities/CAPA, with dashboards and departmental views aligned to ISO 15189:2022.</p>
             </div>
         </div>
     </div>
@@ -295,190 +69,4 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
 </body>
-</html> -->
-
-
-
-
-
-
-
-
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lab QIS - Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        .sidebar { height: 100vh; background: #6900c4; color: white; position: fixed; width: 250px; }
-        .main-content { margin-left: 250px; padding: 20px; }
-        .nav-link { color: #bdc3c7; }
-        .nav-link:hover { color: white; }
-        .card-stat { border-radius: 10px; border: none; transition: 0.3s; }
-        .card-stat:hover { transform: translateY(-5px); }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#" onclick="loadAbout()">Lab QIS 2022</a>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="#" onclick="loadHomeStats()">Dashboard</a></li>
-        
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="deptDropdown" role="button" data-bs-toggle="dropdown">Departments</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Reception')">Reception </a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Phlebotomy')">Phlebotomy </a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Hematology')">Hematology</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Biochemistry')">Biochemistry</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Microbiology')">Microbiology</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Serology')">Serology</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('TB Lab')">TB Lab</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Blood Bank')">Blood Bank</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Molecular')">Molecular</a></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Histology')">Histology</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" onclick="loadDeptView('Quality')">Quality Management</a></li>
-          </ul>
-        </li>
-
-        <li class="nav-item"><a class="nav-link" href="#" onclick="loadAudits()">Compliance/SLIPTA</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="loadAnalytics()">Risk & Analytics</a></li>
-      </ul>
-      
-      <div class="d-flex align-items-center">
-        <div class="text-white me-3 position-relative" onclick="toggleNotifSidebar()" style="cursor:pointer">
-            🔔 <span id="notifCount" class="badge bg-danger"></span>
-        </div>
-        <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
-      </div>
-    </div>
-  </div>
-</nav>
-
-<div class="container mt-4" id="contentArea">
-    </div>
-    <div class="sidebar d-flex flex-column p-3">
-        <h3>Lab QIS</h3>
-        <hr>
-        <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item"><a href="#" class="nav-link active">Home</a></li>
-            <li><a href="#" onclick="loadQI()" class="nav-link">Quality Indicators</a></li>
-            <li><a href="#" onclick="loadNC()" class="nav-link">NC & CAPA</a></li>
-            <li><a href="#" onclick="loadDocs()" class="nav-link">Documents</a></li>
-            <li><a href="#" onclick="loadAudits()" class="nav-link">SLIPTA Audits</a></li>
-            <li><a href="#" onclick="loadAnalytics()" class="nav-link">Analytics & Risks</a></li>
-        </ul>
-        <hr>
-        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
-    </div>
-
-    <div class="main-content">
-        <header class="d-flex justify-content-between mb-4">
-            <h2 id="labNameDisplay">Welcome</h2>
-            <div id="starBadge"></div>
-            <div class="position-relative" onclick="toggleNotifSidebar()" style="cursor:pointer">
-                <span class="fs-4">🔔</span>
-                <span id="notifCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"></span>
-            </div>
-        </header>
-
-        <div class="row" id="statsRow">
-            </div>
-
-        <div id="contentArea" class="mt-4">
-            <div class="alert alert-info">Select a module from the sidebar to begin.</div>
-        </div>
-    </div>
-
-
-    <div id="notifSidebar" class="bg-light shadow" style="position: fixed; top: 0; right: -350px; width: 350px; height: 100vh; transition: 0.3s; z-index: 1050; overflow-y: auto;">
-        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-dark text-white">
-            <h5 class="m-0">Notifications</h5>
-            <button class="btn-close btn-close-white" onclick="toggleNotifSidebar()"></button>
-        </div>
-        <div id="notifList" class="p-2">
-            </div>
-    </div>
-
-    <div class="modal fade" id="equipModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Register New Equipment</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="equipForm">
-                        <input type="hidden" id="equipDept">
-                        <div class="mb-3">
-                            <label>Equipment Name</label>
-                            <input type="text" id="equipName" class="form-control" placeholder="e.g. Sysmex XN-1000" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>Serial Number</label>
-                            <input type="text" id="equipSN" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>Next Service Date</label>
-                            <input type="date" id="equipService" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label>Current Status</label>
-                            <select id="equipStatus" class="form-select">
-                                <option value="Operational">Operational</option>
-                                <option value="Down">Down</option>
-                                <option value="Under Maintenance">Under Maintenance</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">Save Equipment</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="maintenanceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="maintTitle">Record Service</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="maintForm">
-                    <input type="hidden" id="maintEquipId">
-                    <div class="mb-3">
-                        <label class="form-label">Service Date</label>
-                        <input type="date" id="maintDate" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Technician/Company Name</label>
-                        <input type="text" id="maintTech" class="form-control" placeholder="Internal or External Engineer" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Next Service Date (Scheduled)</label>
-                        <input type="date" id="maintNextDate" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Maintenance Notes</label>
-                        <textarea id="maintNotes" class="form-control" rows="3" placeholder="Describe work done, parts replaced, or calibration results..."></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Save Maintenance Record</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</body>
 </html>
- -->

@@ -6,6 +6,16 @@ if (!token && !window.location.href.includes('index.html')) {
     window.location.href = 'index.html';
 }
 
+// Set dashboard heading to lab name if available
+function setLabNameHeading() {
+    const heading = document.getElementById('labNameHeading');
+    if (!heading) return;
+    const labName = localStorage.getItem('labName');
+    if (labName && labName.trim().length > 0) {
+        heading.textContent = labName;
+    }
+}
+
 function logout() {
     localStorage.removeItem('token');
     window.location.href = 'index.html';
@@ -13,6 +23,7 @@ function logout() {
 
 async function loadHomeStats() {
     try {
+        setLabNameHeading();
         const res = await fetch(`${API_URL}/benchmarks/summary`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -903,4 +914,59 @@ function printSOP(pdfUrl) {
     printWindow.addEventListener('load', function() {
         printWindow.print();
     }, true);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const userRole = localStorage.getItem('userRole');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    // Check if the button exists on the current page and if the user is NOT a QA_MANAGER
+    if (uploadBtn && userRole !== 'QA_MANAGER') {
+        uploadBtn.style.display = 'none';
+        console.log("Access Control: Upload button hidden for role:", userRole);
+    }
+});
+
+/**
+ * Westgard Checker
+ * @param {Array} data - Array of QC values
+ * @param {Number} mean - The target Mean
+ * @param {Number} sd - The Standard Deviation
+ */
+function checkWestgardRules(data, mean, sd) {
+    const alertDiv = document.getElementById('westgardAlert');
+    const lastValue = data[data.length - 1];
+    const prevValue = data[data.length - 2];
+
+    // Rule 1:3s (Violation if a single point is outside 3SD)
+    if (Math.abs(lastValue - mean) > 3 * sd) {
+        alertDiv.innerHTML = "⚠️ VIOLATION: Rule 1-3s (Point exceeds 3SD). Reject Run!";
+        alertDiv.className = "text-danger fw-bold small mt-1";
+        return "REJECT";
+    }
+
+    // Rule 2:2s (Violation if two consecutive points are outside 2SD on the same side)
+    const lastDiff = lastValue - mean;
+    const prevDiff = prevValue - mean;
+    
+    if (Math.abs(lastDiff) > 2 * sd && Math.abs(prevDiff) > 2 * sd) {
+        // Check if they are on the same side of the mean
+        if ((lastDiff > 0 && prevDiff > 0) || (lastDiff < 0 && prevDiff < 0)) {
+            alertDiv.innerHTML = "⚠️ VIOLATION: Rule 2-2s (2 points outside 2SD). Reject Run!";
+            alertDiv.className = "text-danger fw-bold small mt-1";
+            return "REJECT";
+        }
+    }
+
+    // Rule 1:2s (Warning if a point is outside 2SD)
+    if (Math.abs(lastValue - mean) > 2 * sd) {
+        alertDiv.innerHTML = "🔔 WARNING: Rule 1-2s (Point exceeds 2SD). Inspect data.";
+        alertDiv.className = "text-warning fw-bold small mt-1";
+        return "WARNING";
+    }
+
+    // If all pass
+    alertDiv.innerHTML = "✓ System In Control (All Westgard rules passed).";
+    alertDiv.className = "text-success fw-bold small mt-1";
+    return "PASS";
 }
