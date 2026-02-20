@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
-// ADD 'checkServiceReminders' TO THE LINE BELOW:
-const { addEquipment, getDeptEquipment, checkServiceReminders } = require('../controllers/equipmentController');
+const { addEquipment, getDeptEquipment, checkServiceReminders, recordMaintenance } = require('../controllers/equipmentController');
 const { protect } = require('../middleware/authMiddleware');
-const { authorize } = require('../middleware/roleMiddleware');
+const { authorizeRoleKeys } = require('../middleware/roleMiddleware');
 
-// Only Admins and Lab Managers can ADD equipment
-router.post('/', protect, authorize('Admin', 'Lab Manager'), addEquipment);
+router.post('/', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER'), addEquipment);
+router.post('/maintenance', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), recordMaintenance);
 
-// Everyone can VIEW equipment
-router.get('/dept/:dept', protect, getDeptEquipment);
-router.get('/check-reminders', protect, checkServiceReminders);
+router.get('/dept/:dept', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), getDeptEquipment);
+router.get('/check-reminders', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), checkServiceReminders);
 
 module.exports = router;

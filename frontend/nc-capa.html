@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NC & CAPA Manager | Lab-QIS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NC & CAPA | Lab-QIS</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-     <div id="sidebar">
+    <div id="sidebar">
         <div class="text-center pb-4 border-bottom border-secondary">
             <h4 class="text-white fw-bold">LAB-QIS</h4>
         </div>
@@ -23,90 +24,27 @@
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
         </div>
     </div>
-    <div class="container-fluid p-4" style="margin-left: 250px;">
+
+    <div class="main-content-area">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-navy">Non-Conformity & CAPA Log</h3>
-            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#ncModal">+ Log New NC</button>
-        </div>
-
-        <div class="card card-clinical p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr class="small text-uppercase">
-                        <th>Ref ID</th>
-                        <th>Date</th>
-                        <th>NC Description</th>
-                        <th>Root Cause</th>
-                        <th>Action Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><span class="fw-bold">NC-2024-001</span></td>
-                        <td>2024-02-10</td>
-                        <td>Reagent out of stock (Glucose)</td>
-                        <td>Late procurement request</td>
-                        <td><span class="badge bg-warning">Pending CAPA</span></td>
-                        <td><button class="btn btn-sm btn-primary">Edit CAPA</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="modal fade" id="ncModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-med-navy text-white">
-                    <h5 class="modal-title">NC & CAPA Form (Clause 8.7)</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="capaForm">
-                        <h6 class="fw-bold text-primary">1. Identification of Non-Conformity</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="small fw-bold">Department</label>
-                                <select class="form-select" id="ncDept">
-                                    <option>Hematology</option>
-                                    <option>Biochemistry</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="small fw-bold">Date Identified</label>
-                                <input type="date" class="form-control" id="ncDate">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="small fw-bold">Detailed Description</label>
-                            <textarea class="form-control" rows="2" placeholder="What happened?"></textarea>
-                        </div>
-
-                        <h6 class="fw-bold text-danger mt-4">2. Root Cause Analysis (RCA)</h6>
-                        <div class="mb-3">
-                            <label class="small fw-bold">Root Cause (5 Whys / Fishbone)</label>
-                            <textarea class="form-control" rows="2" placeholder="Why did it happen?"></textarea>
-                        </div>
-
-                        <h6 class="fw-bold text-success mt-4">3. Corrective & Preventive Action (CAPA)</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="small fw-bold">Corrective Action (Immediate)</label>
-                                <textarea class="form-control" rows="2"></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="small fw-bold">Preventive Action (Future)</label>
-                                <textarea class="form-control" rows="2"></textarea>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-success w-100">Submit CAPA Report</button>
-                        </div>
-                    </form>
-                </div>
+            <div>
+                <h3 class="fw-bold text-navy mb-1">Non-Conformance & CAPA</h3>
+                <p class="text-muted mb-0">Track incidents, root causes, corrective actions, and closure verification.</p>
             </div>
+            <span class="badge bg-warning text-dark">ISO 15189 Clause 8.7</span>
+        </div>
+
+        <div id="contentArea" class="card card-clinical p-4">
+            <div class="text-center text-muted py-4">Loading NC & CAPA records...</div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNC();
+        });
+    </script>
 </body>
 </html>

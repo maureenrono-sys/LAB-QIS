@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { uploadDocument, getDocuments } = require('../controllers/docController');
+const { uploadDocument, getDocuments, updateDocument } = require('../controllers/docController');
 const { protect } = require('../middleware/authMiddleware');
+const { authorizeRoleKeys } = require('../middleware/roleMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// 'file' matches the key name you will use in Postman
-router.post('/', protect, upload.single('file'), uploadDocument);
-router.get('/', protect, getDocuments);
+router.post('/', protect, authorizeRoleKeys('ADMIN', 'QUALITY_ASSURANCE_MANAGER', 'LAB_MANAGER'), upload.single('file'), uploadDocument);
+router.get('/', protect, authorizeRoleKeys('ADMIN', 'QUALITY_ASSURANCE_MANAGER', 'LAB_MANAGER', 'LAB_TECHNOLOGIST'), getDocuments);
+router.put('/:id', protect, authorizeRoleKeys('ADMIN', 'QUALITY_ASSURANCE_MANAGER', 'LAB_MANAGER'), updateDocument);
 
 module.exports = router;

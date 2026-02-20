@@ -1,53 +1,84 @@
 const { User, Laboratory } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { getRoleKey, ROLE_KEYS, ROLE_LABELS_BY_KEY } = require('../constants/roles');
 
-// Helper to create JWT
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// @desc    Register a new Lab and its Admin User
-// @route   POST /api/auth/register
 exports.registerLab = async (req, res) => {
     try {
-        const { labName, labType, fullName, email, password } = req.body;
+        const { labName, labType, fullName, email, password, roleKey: requestedRoleKey } = req.body;
 
-        // 1. Create the Laboratory
-        const lab = await Laboratory.create({ labName, labType });
+        if (!labName || !fullName || !email || !password) {
+            return res.status(400).json({ message: 'labName, fullName, email, and password are required.' });
+        }
 
-        // 2. Create the User linked to that Lab
+        const allowedRoleKeys = [
+            ROLE_KEYS.ADMIN,
+            ROLE_KEYS.LAB_MANAGER,
+            ROLE_KEYS.QUALITY_ASSURANCE_MANAGER,
+            ROLE_KEYS.LAB_TECHNOLOGIST
+        ];
+        const resolvedRoleKey = allowedRoleKeys.includes(requestedRoleKey) ? requestedRoleKey : ROLE_KEYS.LAB_MANAGER;
+        const roleLabel = ROLE_LABELS_BY_KEY[resolvedRoleKey];
+
+        if (!roleLabel) {
+            return res.status(400).json({ message: 'Invalid role selected for registration.' });
+        }
+
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User with this email already exists.' });
+        }
+
+        const [lab] = await Laboratory.findOrCreate({
+            where: { labName },
+            defaults: { labName, labType: labType || 'Private' }
+        });
+
         const user = await User.create({
             fullName,
             email,
             password,
-            role: 'Laboratory Manager', // First user is usually the manager
+            role: roleLabel,
             labId: lab.id
         });
 
+        const roleKey = getRoleKey(user.role);
+
         res.status(201).json({
             token: generateToken(user.id),
-            user: { id: user.id, fullName: user.fullName, labName: lab.labName }
+            user: {
+                id: user.id,
+                fullName: user.fullName,
+                role: user.role,
+                roleKey,
+                labName: lab.labName
+            }
         });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ where: { email }, include: Laboratory });
 
         if (user && (await bcrypt.compare(password, user.password))) {
+            const roleKey = getRoleKey(user.role);
+
             res.json({
                 token: generateToken(user.id),
                 user: {
                     id: user.id,
+                    fullName: user.fullName,
                     role: user.role,
-                    labName: user.Laboratory.labName
+                    roleKey,
+                    labName: user.Laboratory?.labName || ''
                 }
             });
         } else {

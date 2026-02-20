@@ -14,7 +14,7 @@ exports.addQI = async (req, res) => {
             actualPercentage,
             month,
             isoClause,
-            // labId: req.user.labId 
+            labId: req.user.labId 
         });
 
         res.status(201).json(qi);

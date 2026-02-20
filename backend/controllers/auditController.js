@@ -44,3 +44,17 @@ exports.createAudit = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
+exports.getAudits = async (req, res) => {
+    try {
+        const audits = await Audit.findAll({
+            where: { labId: req.user.labId },
+            include: [{ model: AuditFinding }],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json(audits);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

@@ -1,4 +1,4 @@
-const { QualityIndicator, NonConformance, Audit } = require('../models');
+const { QualityIndicator, NonConformance, Audit, Document } = require('../models');
 
 exports.getManagementSummary = async (req, res) => {
     try {

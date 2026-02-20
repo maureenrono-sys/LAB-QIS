@@ -14,6 +14,15 @@ const benchmarkRoutes = require('./routes/benchmarkRoutes')
 const notificationRoutes = require('./routes/notificationRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const equipmentRoutes = require('./routes/equipmentRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const sopRoutes = require('./routes/sopRoutes');
+const qcIntelligenceRoutes = require('./routes/qcIntelligenceRoutes');
+const ncCapaIntelligenceRoutes = require('./routes/ncCapaIntelligenceRoutes');
+const riskRoutes = require('./routes/riskRoutes');
+const staffRoutes = require('./routes/staffRoutes');
+const sliptaAutomationRoutes = require('./routes/sliptaAutomationRoutes');
+const analyticsEngineRoutes = require('./routes/analyticsEngineRoutes');
+const { initWorkflowListeners } = require('./services/workflowListener');
 
 // Load config
 dotenv.config();
@@ -34,6 +43,14 @@ app.use('/api/benchmarks', benchmarkRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/equipment', equipmentRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/sops', sopRoutes);
+app.use('/api/qc-intelligence', qcIntelligenceRoutes);
+app.use('/api/nc-intelligence', ncCapaIntelligenceRoutes);
+app.use('/api/risks', riskRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/slipta', sliptaAutomationRoutes);
+app.use('/api/analytics-engine', analyticsEngineRoutes);
 
 // Test Route
 app.get('/', (req, res) => {
@@ -43,9 +60,16 @@ app.get('/', (req, res) => {
 // Sync Database and Start Server
 const PORT = process.env.PORT || 5000;
 
-// This syncs your models to the database (creates tables)
-sequelize.sync({ force: false })
+// MySQL + Sequelize alter can repeatedly create keys across restarts.
+// Keep default sync safe; opt into alter explicitly when needed.
+const syncOptions = process.env.DB_SYNC_ALTER === 'true'
+    ? { alter: true }
+    : { force: false };
+
+// This syncs your models to the database (creates/updates tables)
+sequelize.sync(syncOptions)
     .then(() => {
+        initWorkflowListeners();
         console.log('MySQL Database connected & Models synced.');
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);

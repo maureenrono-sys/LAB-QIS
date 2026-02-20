@@ -1,4 +1,4 @@
-const { Equipment, Notification } = require('../models');
+const { Equipment, Notification, Maintenance } = require('../models');
 const { Op } = require('sequelize');
 
 // ADD NEW EQUIPMENT
@@ -58,30 +58,32 @@ exports.checkServiceReminders = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
-
-const { Maintenance } = require('../models');
-
 exports.recordMaintenance = async (req, res) => {
     try {
-        const { equipmentId, serviceDate, nextServiceDate, notes, technicianName } = req.body;
+        const { equipmentId, serviceDate, nextServiceDate, notes, technicianName, serviceType } = req.body;
+
+        const equipment = await Equipment.findOne({
+            where: { id: equipmentId, labId: req.user.labId }
+        });
+
+        if (!equipment) {
+            return res.status(404).json({ message: "Equipment not found for this laboratory." });
+        }
         
         // 1. Create the history record
         await Maintenance.create({
             equipmentId,
             serviceDate,
+            serviceType,
             notes,
             technicianName
         });
 
         // 2. Automatically update the Equipment's "Next Service Date"
-        const equipment = await Equipment.findByPk(equipmentId);
-        if (equipment) {
-            equipment.lastServiceDate = serviceDate;
-            equipment.nextServiceDate = nextServiceDate;
-            equipment.status = 'Operational';
-            await equipment.save();
-        }
+        equipment.lastServiceDate = serviceDate;
+        equipment.nextServiceDate = nextServiceDate;
+        equipment.status = 'Operational';
+        await equipment.save();
 
         res.status(201).json({ message: "Maintenance history updated and equipment scheduled." });
     } catch (error) {

@@ -1,5 +1,5 @@
 const { QualityIndicator } = require('../models');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 exports.getRiskAnalysis = async (req, res) => {
     try {

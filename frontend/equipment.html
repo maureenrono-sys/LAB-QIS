@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equipment Maintenance | Lab-QIS</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
@@ -9,8 +10,8 @@
         #sig-canvas { border: 2px dashed #ccc; cursor: crosshair; background: #fafafa; }
     </style>
 </head>
-<body>
-     <div id="sidebar">
+<body class="equipment-page">
+    <div id="sidebar">
         <div class="text-center pb-4 border-bottom border-secondary">
             <h4 class="text-white fw-bold">LAB-QIS</h4>
         </div>
@@ -18,87 +19,432 @@
             <a href="dashboard.html" class="nav-link">Dashboard</a>
             <a href="departments.html" class="nav-link">Departments</a>
             <a href="qc.html" class="nav-link">Quality Control</a>
-            <a href="indicators.html" class="nav-link active">Quality Indicators</a>
-            <a href="equipment.html" class="nav-link">Equipment Log</a>
+            <a href="indicators.html" class="nav-link">Quality Indicators</a>
+            <a href="equipment.html" class="nav-link active">Equipment Log</a>
             <a href="nc-capa.html" class="nav-link">NC & CAPA</a>
             <a href="documents.html" class="nav-link">Documents</a>
             <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
         </div>
-    </div> 
+    </div>
 
-    <div class="container-fluid p-4" style="margin-left: 250px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-navy">Equipment Maintenance Log</h3>
-            <span class="badge bg-success">Instrument: Sysmex XN-1000</span>
+    <div class="main-content-area">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
+            <h3 class="fw-bold text-navy mb-0">Equipment Maintenance Log</h3>
+            <div class="d-flex align-items-center gap-2">
+                <button id="addEquipmentBtn" class="btn btn-sm btn-primary d-none">+ Add Equipment</button>
+                <span id="instrumentBadge" class="badge bg-success">Instrument: Select equipment</span>
+            </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card card-clinical p-4">
+        <div class="row g-4 mb-2 equipment-shell">
+            <div class="col-md-6">
+                <label for="deptSelect" class="form-label fw-bold small">Department</label>
+                <select id="deptSelect" class="form-select">
+                    <option value="Hematology">Hematology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Serology">Serology</option>
+                    <option value="Parasitology">Parasitology</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="TB Lab">TB Lab</option>
+                    <option value="Blood Bank">Blood Bank</option>
+                    <option value="Molecular">Molecular</option>
+                    <option value="Histology">Histology</option>
+                    <option value="Reception">Reception</option>
+                    <option value="Phlebotomy">Phlebotomy</option>
+                    <option value="Quality">Quality</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="equipmentSelect" class="form-label fw-bold small">Equipment</label>
+                <select id="equipmentSelect" class="form-select"></select>
+            </div>
+        </div>
+
+        <div id="equipmentStatus" class="small text-muted mb-3">Loading equipment data...</div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card card-clinical p-4 equipment-main-card">
                     <h6 class="fw-bold border-bottom pb-2">Daily Maintenance Checklist</h6>
                     <form id="maintenanceForm">
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" id="check1">
-                            <label class="form-check-label">Inspect waste lines and reagents</label>
+                            <label class="form-check-label" for="check1">Inspect waste lines and reagents</label>
                         </div>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" id="check2">
-                            <label class="form-check-label">Perform background check (blank)</label>
+                            <label class="form-check-label" for="check2">Perform background check (blank)</label>
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="check3">
-                            <label class="form-check-label">Clean probe and external surfaces</label>
+                            <label class="form-check-label" for="check3">Clean probe and external surfaces</label>
                         </div>
 
-                        <label class="fw-bold small">Operator Digital Signature</label>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="serviceDate" class="form-label small fw-bold">Service Date</label>
+                                <input type="date" id="serviceDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="nextServiceDate" class="form-label small fw-bold">Next Service Date</label>
+                                <input type="date" id="nextServiceDate" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="technicianName" class="form-label small fw-bold">Technician Name</label>
+                                <input type="text" id="technicianName" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="serviceType" class="form-label small fw-bold">Service Type</label>
+                                <select id="serviceType" class="form-select">
+                                    <option value="Routine">Routine</option>
+                                    <option value="Repair">Repair</option>
+                                    <option value="Calibration">Calibration</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <label class="fw-bold small mb-1">Operator Digital Signature</label>
                         <canvas id="sig-canvas" width="500" height="150" class="w-100 rounded"></canvas>
-                        
-                        <div class="mt-3">
+
+                        <label for="notes" class="form-label small fw-bold mt-3">Notes</label>
+                        <textarea id="notes" class="form-control" rows="3" placeholder="Maintenance notes (optional)"></textarea>
+
+                        <div class="mt-3 d-flex justify-content-between align-items-center">
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSig">Clear Signature</button>
-                            <button type="submit" class="btn btn-primary float-end">Submit Maintenance Log</button>
+                            <button type="submit" class="btn btn-primary">Submit Maintenance Log</button>
                         </div>
                     </form>
                 </div>
             </div>
-            
-            <div class="col-md-4">
-                <div class="card card-clinical p-3 bg-light">
+
+            <div class="col-lg-4">
+                <div class="card card-clinical p-3 h-100 equipment-side-card">
                     <h6 class="fw-bold">Upcoming Service</h6>
-                    <p class="small">Preventive Maintenance due in: <span class="text-danger fw-bold">14 Days</span></p>
+                    <p class="small mb-2">
+                        <span id="upcomingEquipment" class="fw-bold">No equipment selected</span>
+                    </p>
+                    <p class="small mb-1">
+                        Preventive maintenance due in:
+                        <span id="dueDays" class="text-danger fw-bold">N/A</span>
+                    </p>
+                    <p class="small text-muted mb-3">Next service date: <span id="upcomingDate">N/A</span></p>
                     <hr>
-                    <button class="btn btn-sm btn-outline-navy w-100">View Manual (PDF)</button>
+                    <button id="viewManualBtn" class="btn btn-sm btn-outline-primary w-100">View Manual (PDF)</button>
+                    <div id="manualStatus" class="small text-muted mt-2"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    
+    <div class="modal fade" id="addEquipmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Register New Equipment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addEquipmentForm">
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Name</label>
+                            <input id="newEquipName" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Serial Number</label>
+                            <input id="newEquipSn" class="form-control">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Department</label>
+                            <select id="newEquipDept" class="form-select"></select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Status</label>
+                            <select id="newEquipStatus" class="form-select">
+                                <option value="Operational">Operational</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
+                                <option value="Out of Service">Out of Service</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Next Service Date</label>
+                            <input id="newEquipNextService" type="date" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save Equipment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Simple Signature Pad Logic
-        const canvas = document.getElementById("sig-canvas");
-        const ctx = canvas.getContext("2d");
-        let drawing = false;
+        const API_URL = 'http://localhost:5000/api';
+        const API_BASE = 'http://localhost:5000';
+        const token = localStorage.getItem('token');
 
-        canvas.addEventListener("mousedown", () => drawing = true);
-        canvas.addEventListener("mouseup", () => { drawing = false; ctx.beginPath(); });
-        canvas.addEventListener("mousemove", draw);
-
-        function draw(e) {
-            if (!drawing) return;
-            ctx.lineWidth = 2;
-            ctx.lineCap = "round";
-            ctx.strokeStyle = "#1a2a6c";
-
-            const rect = canvas.getBoundingClientRect();
-            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            ctx.stroke();
+        if (!token) {
+            window.location.href = 'index.html';
         }
 
-        document.getElementById("clearSig").addEventListener("click", () => {
+        const deptSelect = document.getElementById('deptSelect');
+        const equipmentSelect = document.getElementById('equipmentSelect');
+        const addEquipmentBtn = document.getElementById('addEquipmentBtn');
+        const instrumentBadge = document.getElementById('instrumentBadge');
+        const equipmentStatus = document.getElementById('equipmentStatus');
+        const upcomingEquipment = document.getElementById('upcomingEquipment');
+        const dueDays = document.getElementById('dueDays');
+        const upcomingDate = document.getElementById('upcomingDate');
+        const manualStatus = document.getElementById('manualStatus');
+
+        let currentEquipment = [];
+        const roleKey = localStorage.getItem('roleKey') || '';
+        const userRoleLabel = localStorage.getItem('userRole') || '';
+        const fallbackRoleKey = userRoleLabel === 'System Administrator'
+            ? 'ADMIN'
+            : userRoleLabel === 'Laboratory Manager'
+                ? 'LAB_MANAGER'
+                : '';
+        const effectiveRoleKey = roleKey || fallbackRoleKey;
+        const canAddEquipment = ['ADMIN', 'LAB_MANAGER'].includes(effectiveRoleKey);
+
+        if (canAddEquipment) {
+            addEquipmentBtn.classList.remove('d-none');
+        }
+
+        document.getElementById('newEquipDept').innerHTML = deptSelect.innerHTML;
+        document.getElementById('newEquipDept').value = deptSelect.value;
+
+        addEquipmentBtn.addEventListener('click', () => {
+            document.getElementById('newEquipDept').value = deptSelect.value;
+            new bootstrap.Modal(document.getElementById('addEquipmentModal')).show();
+        });
+
+        function daysUntil(dateStr) {
+            if (!dateStr) return null;
+            const today = new Date();
+            const target = new Date(dateStr);
+            const diffMs = target.setHours(0,0,0,0) - today.setHours(0,0,0,0);
+            return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        }
+
+        function updateUpcomingCard() {
+            if (!currentEquipment.length) {
+                upcomingEquipment.textContent = 'No equipment available';
+                dueDays.textContent = 'N/A';
+                upcomingDate.textContent = 'N/A';
+                instrumentBadge.textContent = 'Instrument: Select equipment';
+                return;
+            }
+
+            const soonest = [...currentEquipment]
+                .filter(item => item.nextServiceDate)
+                .sort((a, b) => new Date(a.nextServiceDate) - new Date(b.nextServiceDate))[0] || currentEquipment[0];
+
+            const selected = currentEquipment.find(item => item.id === equipmentSelect.value) || soonest;
+            const days = daysUntil(soonest.nextServiceDate);
+
+            instrumentBadge.textContent = `Instrument: ${selected.name}`;
+            upcomingEquipment.textContent = soonest.name;
+            dueDays.textContent = days === null ? 'N/A' : `${Math.max(days, 0)} day(s)`;
+            upcomingDate.textContent = soonest.nextServiceDate
+                ? new Date(soonest.nextServiceDate).toLocaleDateString()
+                : 'N/A';
+        }
+
+        async function loadEquipmentByDepartment() {
+            const dept = encodeURIComponent(deptSelect.value);
+            equipmentStatus.textContent = 'Loading equipment data...';
+
+            try {
+                const res = await fetch(`${API_URL}/equipment/dept/${dept}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error('Failed to fetch equipment list');
+                currentEquipment = await res.json();
+
+                equipmentSelect.innerHTML = currentEquipment.map(item => `
+                    <option value="${item.id}">${item.name} (${item.serialNumber || 'No SN'})</option>
+                `).join('');
+
+                if (!currentEquipment.length) {
+                    equipmentSelect.innerHTML = '<option value="">No equipment found</option>';
+                    equipmentStatus.textContent = 'No registered equipment in this department.';
+                } else {
+                    equipmentStatus.textContent = `${currentEquipment.length} equipment item(s) loaded.`;
+                    const selected = currentEquipment[0];
+                    document.getElementById('serviceDate').valueAsDate = new Date();
+                    document.getElementById('nextServiceDate').value = selected.nextServiceDate
+                        ? new Date(selected.nextServiceDate).toISOString().split('T')[0]
+                        : '';
+                }
+
+                updateUpcomingCard();
+            } catch (error) {
+                equipmentStatus.textContent = 'Unable to load equipment. Check API/server status.';
+                equipmentSelect.innerHTML = '<option value="">Load failed</option>';
+                updateUpcomingCard();
+            }
+        }
+
+        async function submitMaintenance(e) {
+            e.preventDefault();
+
+            const selectedEquipment = equipmentSelect.value;
+            if (!selectedEquipment) {
+                alert('Select equipment before submitting.');
+                return;
+            }
+
+            const payload = {
+                equipmentId: selectedEquipment,
+                serviceDate: document.getElementById('serviceDate').value,
+                nextServiceDate: document.getElementById('nextServiceDate').value,
+                technicianName: document.getElementById('technicianName').value,
+                serviceType: document.getElementById('serviceType').value,
+                notes: [
+                    document.getElementById('notes').value.trim(),
+                    `Checklist: waste/reagents=${document.getElementById('check1').checked}, background=${document.getElementById('check2').checked}, probe-clean=${document.getElementById('check3').checked}`,
+                    'Operator signature captured on maintenance form.'
+                ].filter(Boolean).join(' | ')
+            };
+
+            const res = await fetch(`${API_URL}/equipment/maintenance`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ message: 'Failed to save maintenance log.' }));
+                alert(err.message || 'Failed to save maintenance log.');
+                return;
+            }
+
+            alert('Maintenance log submitted successfully.');
+            await loadEquipmentByDepartment();
+        }
+
+        async function addEquipment(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('newEquipName').value.trim(),
+                serialNumber: document.getElementById('newEquipSn').value.trim(),
+                department: document.getElementById('newEquipDept').value,
+                status: document.getElementById('newEquipStatus').value,
+                nextServiceDate: document.getElementById('newEquipNextService').value
+            };
+
+            const res = await fetch(`${API_URL}/equipment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(data.message || 'Failed to add equipment.');
+                return;
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
+            document.getElementById('addEquipmentForm').reset();
+            deptSelect.value = payload.department;
+            await loadEquipmentByDepartment();
+        }
+
+        async function viewManual() {
+            manualStatus.textContent = 'Searching manual...';
+            const selected = currentEquipment.find(item => item.id === equipmentSelect.value);
+
+            try {
+                const res = await fetch(`${API_URL}/docs`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const docs = await res.json();
+
+                const selectedName = selected ? selected.name.toLowerCase() : '';
+                const match = docs.find(doc => {
+                    const title = (doc.title || '').toLowerCase();
+                    return title.includes('manual') && (!selectedName || title.includes(selectedName));
+                }) || docs.find(doc => ((doc.title || '').toLowerCase().includes('manual')));
+
+                if (!match) {
+                    manualStatus.textContent = 'No manual found in Document Control.';
+                    return;
+                }
+
+                manualStatus.textContent = 'Manual opened in new tab.';
+                window.open(`${API_BASE}/${match.filePath}`, '_blank');
+            } catch (error) {
+                manualStatus.textContent = 'Could not load manuals from API.';
+            }
+        }
+
+        const canvas = document.getElementById('sig-canvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function getCanvasPoint(event) {
+            const rect = canvas.getBoundingClientRect();
+            const source = event.touches ? event.touches[0] : event;
+            return {
+                x: source.clientX - rect.left,
+                y: source.clientY - rect.top
+            };
+        }
+
+        function startDraw(event) {
+            drawing = true;
+            const p = getCanvasPoint(event);
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+        }
+
+        function stopDraw() {
+            drawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            event.preventDefault();
+            const p = getCanvasPoint(event);
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#1abc9c';
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mouseup', stopDraw);
+        canvas.addEventListener('mouseleave', stopDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchend', stopDraw);
+        canvas.addEventListener('touchmove', draw, { passive: false });
+
+        document.getElementById('clearSig').addEventListener('click', () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
+
+        deptSelect.addEventListener('change', loadEquipmentByDepartment);
+        equipmentSelect.addEventListener('change', updateUpcomingCard);
+        document.getElementById('maintenanceForm').addEventListener('submit', submitMaintenance);
+        document.getElementById('addEquipmentForm').addEventListener('submit', addEquipment);
+        document.getElementById('viewManualBtn').addEventListener('click', viewManual);
+
+        loadEquipmentByDepartment();
     </script>
 </body>
 </html>
+

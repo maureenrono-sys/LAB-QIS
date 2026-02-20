@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Parasitology Department | Lab-QIS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="sidebar">
+        <div class="text-center pb-4 border-bottom border-secondary">
+            <h4 class="text-white fw-bold">LAB-QIS</h4>
+        </div>
+        <div class="mt-3">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="departments.html" class="nav-link active">Departments</a>
+            <a href="qc.html" class="nav-link">Quality Control</a>
+            <a href="indicators.html" class="nav-link">Quality Indicators</a>
+            <a href="equipment.html" class="nav-link">Equipment Log</a>
+            <a href="nc-capa.html" class="nav-link">NC & CAPA</a>
+            <a href="documents.html" class="nav-link">Documents</a>
+            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
+            <a href="analytics.html" class="nav-link">Risk & Analytics</a>
+        </div>
+    </div>
+
+    <div class="main-content-area">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-navy mb-1">Parasitology Department</h3>
+                <p class="text-muted mb-0">SOPs, job aids, equipment logs, QC data, and NC/CAPA records.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary" href="documents.html"><i class="bi bi-file-earmark-text"></i> View Documents</a>
+                <a class="btn btn-primary" href="documents.html"><i class="bi bi-folder2-open"></i> Uploaded Docs</a>
+            </div>
+        </div>
+
+        <div class="card card-clinical mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Standard Operating Procedures (SOPs)</h5>
+                <a class="btn btn-sm btn-outline-success dept-upload-sop-btn" href="documents.html"><i class="bi bi-cloud-upload"></i> Upload Document</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Document Name</th>
+                            <th>Version</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deptSopBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card card-clinical mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Job Aids / Work Instructions</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Document Name</th>
+                            <th>Version</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deptJobAidBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="card card-clinical h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Equipment Logs</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">Track microscopes, centrifuges, and wet mount stations.</p>
+                        <div class="list-group">
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Microscope P-3</span>
+                                <span class="badge bg-success">Operational</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between">
+                                <span>Centrifuge C-2</span>
+                                <span class="badge bg-warning text-dark">Maintenance Due</span>
+                            </div>
+                        </div>
+                        <a class="btn btn-sm btn-outline-primary mt-3" href="equipment.html">Open Equipment Log</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card card-clinical h-100">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">QC Data</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">Review parasite smear quality and proficiency checks.</p>
+                        <div class="alert alert-info small mb-3">Latest QC run within limits.</div>
+                        <a class="btn btn-sm btn-outline-primary" href="qc.html">View QC Charts</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-clinical">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Non-Conformities & CAPA</h5>
+                <a class="btn btn-sm btn-outline-danger" href="nc-capa.html"><i class="bi bi-exclamation-triangle"></i> Log NC/CAPA</a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Reference</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>NC-PARA-001</td>
+                            <td>Staining quality inconsistency on thick smear slides</td>
+                            <td><span class="badge bg-warning text-dark">In Progress</span></td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="nc-capa.html">Review</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.DEPARTMENT_NAME = 'Parasitology';
+    </script>
+    <script src="department-docs.js"></script>
+</body>
+</html>
+

@@ -4,7 +4,23 @@
     <meta charset="UTF-8">
     <title>QC Analytics | Lab-QIS</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .panel-soft {
+            background: #ecf0f1;
+            border: 1px solid #dde3e6;
+        }
+
+        .alert-ok {
+            color: #1abc9c;
+        }
+
+        .form-select:focus {
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 0.25rem rgba(26, 188, 156, 0.2);
+        }
+    </style>
 </head>
 <body>
     <div id="sidebar">
@@ -23,9 +39,10 @@
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
         </div>
     </div>
-    <div class="container-fluid p-4" style="margin-left: 250px;">
+
+    <div class="container-fluid p-4" style="margin-left: 250px; background: #fefefe; min-height: 100vh;">
         <h3 class="fw-bold text-navy mb-4">Internal Quality Control (IQC)</h3>
-        
+
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card card-clinical p-3">
@@ -37,31 +54,51 @@
                     </select>
                 </div>
             </div>
+            <div class="col-md-4">
+                <div class="card card-clinical p-3">
+                    <label class="form-label fw-bold small">Record Latest QC Value</label>
+                    <input id="qcValueInput" type="number" step="0.01" class="form-control mb-2" value="12.10">
+                    <button id="saveQcRunBtn" class="btn btn-sm btn-primary">Save QC Run</button>
+                    <div id="qcSaveStatus" class="small text-muted mt-2"></div>
+                </div>
+            </div>
         </div>
 
         <div class="card card-clinical p-4">
-            <h5 class="fw-bold"><i class="bi bi-graph-up"></i> Levey-Jennings Chart</h5>
+            <h5 class="fw-bold text-navy"><i class="bi bi-graph-up"></i> Levey-Jennings Chart</h5>
             <div style="height: 400px;">
                 <canvas id="ljChart"></canvas>
             </div>
-            <div class="mt-3 p-3 bg-light rounded">
+            <div class="mt-3 p-3 panel-soft rounded">
                 <small class="fw-bold text-muted text-uppercase">Westgard Rule Violations:</small>
-                <div id="westgardAlert" class="text-success small fw-bold mt-1">✓ No violations detected (In Control)</div>
+                <div id="westgardAlert" class="alert-ok small fw-bold mt-1">&#10003; No violations detected (In Control)</div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        const API_URL = 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        const palette = {
+            turquoise: '#1abc9c',
+            electricBlue: '#3498db',
+            sunshineYellow: '#f1c40f',
+            coral: '#e67e22'
+        };
+
         const ctx = document.getElementById('ljChart').getContext('2d');
-        
+
         // Mock Data for L-J Chart (Mean = 12.0, SD = 0.5)
         const mean = 12.0;
         const sd = 0.5;
-        const days = Array.from({length: 20}, (_, i) => `Day ${i+1}`);
+        const days = Array.from({ length: 20 }, (_, i) => `Day ${i + 1}`);
         const values = [11.9, 12.1, 12.0, 12.2, 11.8, 12.5, 12.0, 12.3, 11.9, 12.1, 12.4, 12.0, 11.7, 12.2, 12.0, 12.1, 11.9, 12.0, 12.2, 12.1];
-
-        
 
         new Chart(ctx, {
             type: 'line',
@@ -71,32 +108,91 @@
                     {
                         label: 'Daily Control Value',
                         data: values,
-                        borderColor: '#1a2a6c',
-                        backgroundColor: '#1a2a6c',
+                        borderColor: palette.electricBlue,
+                        backgroundColor: palette.electricBlue,
                         borderWidth: 2,
-                        pointRadius: 4
+                        pointRadius: 4,
                         pointBackgroundColor: function(context) {
                             const value = context.dataset.data[context.dataIndex];
-                            if (Math.abs(value - mean) > 3 * sd) return 'red';    // 1-3s violation
-                            if (Math.abs(value - mean) > 2 * sd) return 'orange'; // 1-2s warning
-                            return '#1a2a6c'; // Normal
+                            if (Math.abs(value - mean) > 3 * sd) return palette.coral;
+                            if (Math.abs(value - mean) > 2 * sd) return palette.sunshineYellow;
+                            return palette.turquoise;
                         }
                     },
-                    // SD Lines
-                    { label: 'Mean', data: Array(20).fill(mean), borderColor: 'green', borderDash: [5, 5], fill: false, pointRadius: 0 },
-                    { label: '+2SD', data: Array(20).fill(mean + (2*sd)), borderColor: 'orange', borderDash: [2, 2], fill: false, pointRadius: 0 },
-                    { label: '-2SD', data: Array(20).fill(mean - (2*sd)), borderColor: 'orange', borderDash: [2, 2], fill: false, pointRadius: 0 },
-                    { label: '+3SD', data: Array(20).fill(mean + (3*sd)), borderColor: 'red', fill: false, pointRadius: 0 },
-                    { label: '-3SD', data: Array(20).fill(mean - (3*sd)), borderColor: 'red', fill: false, pointRadius: 0 }
+                    { label: 'Mean', data: Array(20).fill(mean), borderColor: palette.turquoise, borderDash: [5, 5], fill: false, pointRadius: 0 },
+                    { label: '+2SD', data: Array(20).fill(mean + (2 * sd)), borderColor: palette.sunshineYellow, borderDash: [2, 2], fill: false, pointRadius: 0 },
+                    { label: '-2SD', data: Array(20).fill(mean - (2 * sd)), borderColor: palette.sunshineYellow, borderDash: [2, 2], fill: false, pointRadius: 0 },
+                    { label: '+3SD', data: Array(20).fill(mean + (3 * sd)), borderColor: palette.coral, fill: false, pointRadius: 0 },
+                    { label: '-3SD', data: Array(20).fill(mean - (3 * sd)), borderColor: palette.coral, fill: false, pointRadius: 0 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { min: mean - (4*sd), max: mean + (4*sd) }
+                    y: { min: mean - (4 * sd), max: mean + (4 * sd) }
                 }
             }
+        });
+
+        function parseAnalyteLabel(raw) {
+            const text = raw || '';
+            const match = text.match(/^(.+)\s+\((.+)\)$/);
+            if (!match) {
+                return { analyte: text, controlLevel: 'Normal' };
+            }
+            return {
+                analyte: match[1].trim(),
+                controlLevel: match[2].trim()
+            };
+        }
+
+        document.getElementById('saveQcRunBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('qcSaveStatus');
+            const alertEl = document.getElementById('westgardAlert');
+            const value = Number(document.getElementById('qcValueInput').value);
+            const analyteMeta = parseAnalyteLabel(document.getElementById('analyteSelect').value);
+
+            if (Number.isNaN(value)) {
+                statusEl.textContent = 'Please enter a valid numeric value.';
+                return;
+            }
+
+            statusEl.textContent = 'Saving QC run...';
+            const res = await fetch(`${API_URL}/qc-intelligence/runs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    analyte: analyteMeta.analyte,
+                    controlLevel: analyteMeta.controlLevel,
+                    value,
+                    mean,
+                    sd
+                })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                statusEl.textContent = data.message || 'Failed to save QC run.';
+                return;
+            }
+
+            const runStatus = data.run?.status || 'PASS';
+            if (runStatus === 'REJECT') {
+                alertEl.className = 'text-danger fw-bold small mt-1';
+                alertEl.textContent = 'QC REJECT detected. NC has been auto-created and alert sent.';
+            } else if (runStatus === 'WARNING') {
+                alertEl.className = 'text-warning fw-bold small mt-1';
+                alertEl.textContent = 'QC WARNING recorded. Monitor closely for repeat failure.';
+            } else {
+                alertEl.className = 'alert-ok small fw-bold mt-1';
+                alertEl.textContent = 'QC PASS saved. System remains in control.';
+            }
+
+            statusEl.textContent = `QC run saved (${runStatus}).`;
         });
     </script>
 </body>

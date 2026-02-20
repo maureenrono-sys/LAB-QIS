@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { addQI, getMyLabQI } = require('../controllers/qiController');
 const { protect } = require('../middleware/authMiddleware');
+const { authorizeRoleKeys } = require('../middleware/roleMiddleware');
 
-// All QI routes should be protected (requires login)
 router.route('/')
-    .post(protect, addQI)
-    .get(protect, getMyLabQI);
+    .post(protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), addQI)
+    .get(protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), getMyLabQI);
 
 module.exports = router;

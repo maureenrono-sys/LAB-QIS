@@ -31,112 +31,131 @@
                 <h3 class="fw-bold text-navy mb-1">Departments</h3>
                 <p class="text-muted mb-0">Select a department to view SOPs, equipment logs, QC charts, and non-conformities.</p>
             </div>
-            <button class="btn btn-primary" id="uploadBtn">
-                <i class="bi bi-cloud-upload"></i> Upload New SOP
-            </button>
+            <a class="btn btn-primary" id="uploadBtn" href="documents.html">
+                <i class="bi bi-cloud-upload"></i> Upload Document
+            </a>
         </div>
 
-        <ul class="nav nav-pills mb-4 flex-wrap" id="deptTopNav">
-            <li class="nav-item"><a class="nav-link" href="dept-hematology.html">Hematology</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-biochemistry.html">Biochemistry</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-microbiology.html">Microbiology</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-serology.html">Serology</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-blood-bank.html">Blood Bank</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-molecular.html">Molecular</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-histology.html">Histology</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-reception.html">Reception</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-phlebotomy.html">Phlebotomy</a></li>
-            <li class="nav-item"><a class="nav-link" href="dept-quality.html">Quality</a></li>
-        </ul>
+    
 
-        <div class="row g-3">
+        <div class="row g-4 mt-1 pb-3 department-grid">
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Hematology</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-hematology.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-hematology h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Hematology</h5>
+                        <p class="card-text small text-white-50">CBC analysis, blood film review, and cell morphology verification.</p>
+                        <a class="btn btn-sm btn-light" href="dept-hematology.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Biochemistry</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-biochemistry.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-biochemistry h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Biochemistry</h5>
+                        <p class="card-text small text-white-50">Chemical analyte testing for liver, kidney, glucose, and lipid profiles.</p>
+                        <a class="btn btn-sm btn-light" href="dept-biochemistry.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Microbiology</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-microbiology.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-microbiology h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Microbiology</h5>
+                        <p class="card-text small text-white-50">Culture, organism identification, and antimicrobial susceptibility testing.</p>
+                        <a class="btn btn-sm btn-light" href="dept-microbiology.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Serology</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-serology.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-serology h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Serology</h5>
+                        <p class="card-text small text-white-50">Antigen-antibody testing for infectious disease and immunity screening.</p>
+                        <a class="btn btn-sm btn-light" href="dept-serology.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Blood Bank</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-blood-bank.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-blood-bank h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Blood Bank</h5>
+                        <p class="card-text small text-white-50">Blood grouping, compatibility testing, and safe transfusion support.</p>
+                        <a class="btn btn-sm btn-light" href="dept-blood-bank.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Molecular</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-molecular.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-molecular h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Molecular</h5>
+                        <p class="card-text small text-white-50">PCR workflows for pathogen detection and molecular diagnostics.</p>
+                        <a class="btn btn-sm btn-light" href="dept-molecular.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Histology</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-histology.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-histology h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Histology</h5>
+                        <p class="card-text small text-white-50">Tissue processing, staining, and microscopic slide preparation.</p>
+                        <a class="btn btn-sm btn-light" href="dept-histology.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Reception</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-reception.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-reception h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Reception</h5>
+                        <p class="card-text small text-white-50">Patient registration, sample check-in, and request verification.</p>
+                        <a class="btn btn-sm btn-light" href="dept-reception.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Phlebotomy</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-phlebotomy.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-phlebotomy h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Phlebotomy</h5>
+                        <p class="card-text small text-white-50">Patient identification, safe venipuncture, and specimen labeling.</p>
+                        <a class="btn btn-sm btn-light" href="dept-phlebotomy.html">Open Department</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-4">
-                <div class="card card-clinical h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Quality</h5>
-                        <p class="card-text text-muted small">SOPs, QC charts, equipment logs, and NC/CAPA.</p>
-                        <a class="btn btn-sm btn-outline-primary" href="dept-quality.html">Open Department</a>
+                <div class="card card-clinical dept-card dept-quality h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Quality Management</h5>
+                        <p class="card-text small text-white-50">Audits, CAPA tracking, quality indicators, and document control.</p>
+                        <a class="btn btn-sm btn-light" href="dept-quality.html">Open Department</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-clinical dept-card dept-parasitology h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">Parasitology Lab</h5>
+                        <p class="card-text small text-white-50">Stool, blood, and tissue microscopy for parasite detection and identification.</p>
+                        <a class="btn btn-sm btn-light" href="dept-parasitology.html">Open Department</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-clinical dept-card dept-tb-lab h-100">
+                    <div class="dept-card-overlay"></div>
+                    <div class="card-body dept-card-body">
+                        <h5 class="card-title text-white">TB Lab</h5>
+                        <p class="card-text small text-white-50">AFB smear, GeneXpert workflows, and tuberculosis culture quality tracking.</p>
+                        <a class="btn btn-sm btn-light" href="dept-tb-lab.html">Open Department</a>
                     </div>
                 </div>
             </div>
@@ -144,3 +163,4 @@
     </div>
 </body>
 </html>
+

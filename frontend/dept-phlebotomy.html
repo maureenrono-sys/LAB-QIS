@@ -32,15 +32,15 @@
                 <p class="text-muted mb-0">SOPs, job aids, equipment logs, QC data, and NC/CAPA records.</p>
             </div>
             <div class="d-flex gap-2">
-                <button class="btn btn-outline-primary"><i class="bi bi-file-earmark-text"></i> View Documents</button>
-                <button class="btn btn-primary"><i class="bi bi-folder2-open"></i> Uploaded Docs</button>
+                <a class="btn btn-outline-primary" href="documents.html"><i class="bi bi-file-earmark-text"></i> View Documents</a>
+                <a class="btn btn-primary" href="documents.html"><i class="bi bi-folder2-open"></i> Uploaded Docs</a>
             </div>
         </div>
 
         <div class="card card-clinical mb-4">
             <div class="card-header bg-light d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Standard Operating Procedures (SOPs)</h5>
-                <button class="btn btn-sm btn-outline-success"><i class="bi bi-cloud-upload"></i> Upload SOP</button>
+                <a class="btn btn-sm btn-outline-success dept-upload-sop-btn" href="documents.html"><i class="bi bi-cloud-upload"></i> Upload Document</a>
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -52,18 +52,25 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="deptSopBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card card-clinical mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Job Aids / Work Instructions</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td><strong>Venipuncture SOP</strong></td>
-                            <td><span class="badge bg-secondary">v1.5</span></td>
-                            <td><span class="badge bg-success">Active</span></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-primary mx-1"><i class="bi bi-eye"></i> View</button>
-                                <button class="btn btn-sm btn-outline-info mx-1"><i class="bi bi-file-earmark-medical"></i> Job Aid</button>
-                                <button class="btn btn-sm btn-outline-success mx-1"><i class="bi bi-printer"></i> Print</button>
-                            </td>
+                            <th>Document Name</th>
+                            <th>Version</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
                         </tr>
-                    </tbody>
+                    </thead>
+                    <tbody id="deptJobAidBody"></tbody>
                 </table>
             </div>
         </div>
@@ -86,7 +93,7 @@
                                 <span class="badge bg-warning text-dark">Maintenance Due</span>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-outline-primary mt-3">Open Equipment Log</button>
+                        <a class="btn btn-sm btn-outline-primary mt-3" href="equipment.html">Open Equipment Log</a>
                     </div>
                 </div>
             </div>
@@ -98,7 +105,7 @@
                     <div class="card-body">
                         <p class="text-muted small mb-2">Monitor specimen collection errors and re-draws.</p>
                         <div class="alert alert-info small mb-3">Latest QC run within limits.</div>
-                        <button class="btn btn-sm btn-outline-primary">View QC Charts</button>
+                        <a class="btn btn-sm btn-outline-primary" href="qc.html">View QC Charts</a>
                     </div>
                 </div>
             </div>
@@ -107,7 +114,7 @@
         <div class="card card-clinical">
             <div class="card-header bg-light d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Non-Conformities & CAPA</h5>
-                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-exclamation-triangle"></i> Log NC/CAPA</button>
+                <a class="btn btn-sm btn-outline-danger" href="nc-capa.html"><i class="bi bi-exclamation-triangle"></i> Log NC/CAPA</a>
             </div>
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
@@ -124,12 +131,17 @@
                             <td>NC-PHL-001</td>
                             <td>Clotted sample received</td>
                             <td><span class="badge bg-warning text-dark">In Progress</span></td>
-                            <td class="text-end"><button class="btn btn-sm btn-outline-secondary">Review</button></td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="nc-capa.html">Review</a></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-</body>
+        <script>
+        window.DEPARTMENT_NAME = 'Phlebotomy';
+    </script>
+    <script src="department-docs.js"></script></body>
 </html>
+
+

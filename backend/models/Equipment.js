@@ -6,7 +6,7 @@ const Equipment = sequelize.define('Equipment', {
     name: { type: DataTypes.STRING, allowNull: false }, // e.g., Sysmex XN-1000
     serialNumber: { type: DataTypes.STRING, unique: true },
     department: { 
-        type: DataTypes.ENUM('Reception', 'Phlebotomy', 'Hematology', 'Biochemistry', 'Serology', 'Parasitology', 'Bacteriology', 'TB Lab', 'Blood Bank', 'Molecular', 'Histology', 'Quality'),
+        type: DataTypes.ENUM('Reception', 'Phlebotomy', 'Hematology', 'Biochemistry', 'Serology', 'Parasitology', 'Bacteriology', 'Microbiology', 'TB Lab', 'Blood Bank', 'Molecular', 'Histology', 'Quality'),
         allowNull: false 
     },
     lastServiceDate: { type: DataTypes.DATE },

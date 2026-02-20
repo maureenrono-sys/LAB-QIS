@@ -30,6 +30,12 @@ const NonConformance = sequelize.define('NonConformance', {
     },
     deadline: {
         type: DataTypes.DATE
+    },
+    overdueJustification: {
+        type: DataTypes.TEXT
+    },
+    effectivenessEvidence: {
+        type: DataTypes.TEXT
     }
 });
 
