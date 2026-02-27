@@ -22,7 +22,7 @@
         }
     </style>
 </head>
-<body>
+<body class="qc-page">
     <div id="sidebar">
         <div class="text-center pb-4 border-bottom border-secondary">
             <h4 class="text-white fw-bold">LAB-QIS</h4>
@@ -37,15 +37,25 @@
             <a href="documents.html" class="nav-link">Documents</a>
             <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
+            <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
+            <a href="operations-center.html" class="nav-link">Operations Center</a>
+            <a href="client-feedback.html" class="nav-link">Client Feedback</a>
+            <a href="admin-portal.html" class="nav-link">Admin Portal</a>
         </div>
     </div>
 
-    <div class="container-fluid p-4" style="margin-left: 250px; background: #fefefe; min-height: 100vh;">
-        <h3 class="fw-bold text-navy mb-4">Internal Quality Control (IQC)</h3>
+    <div class="main-content-area qc-shell">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-navy mb-1">Internal Quality Control (IQC)</h3>
+                <p class="text-muted mb-0">Monitor analyzer precision, enforce quality gates, and detect Westgard violations early.</p>
+            </div>
+            <span class="badge bg-info text-dark">QC Intelligence</span>
+        </div>
 
-        <div class="row mb-4">
+        <div class="row mb-4 g-3">
             <div class="col-md-4">
-                <div class="card card-clinical p-3">
+                <div class="card card-clinical p-3 qc-panel qc-panel-analyte h-100">
                     <label class="form-label fw-bold small">Select Analyte</label>
                     <select id="analyteSelect" class="form-select">
                         <option>Hemoglobin (Level 2)</option>
@@ -55,7 +65,19 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card card-clinical p-3">
+                <div class="card card-clinical p-3 qc-panel qc-panel-gate h-100">
+                    <label class="form-label fw-bold small">Select Equipment (Quality Gate)</label>
+                    <select id="equipmentSelect" class="form-select mb-2">
+                        <option value="">Loading equipment...</option>
+                    </select>
+                    <label class="form-label fw-bold small">Select Staff (Quality Gate)</label>
+                    <select id="staffSelect" class="form-select">
+                        <option value="">Loading staff...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-clinical p-3 qc-panel qc-panel-run h-100">
                     <label class="form-label fw-bold small">Record Latest QC Value</label>
                     <input id="qcValueInput" type="number" step="0.01" class="form-control mb-2" value="12.10">
                     <button id="saveQcRunBtn" class="btn btn-sm btn-primary">Save QC Run</button>
@@ -64,7 +86,7 @@
             </div>
         </div>
 
-        <div class="card card-clinical p-4">
+        <div class="card card-clinical p-4 qc-chart-shell">
             <h5 class="fw-bold text-navy"><i class="bi bi-graph-up"></i> Levey-Jennings Chart</h5>
             <div style="height: 400px;">
                 <canvas id="ljChart"></canvas>
@@ -147,14 +169,64 @@
             };
         }
 
+        async function loadQcGateOptions() {
+            const equipmentSelect = document.getElementById('equipmentSelect');
+            const staffSelect = document.getElementById('staffSelect');
+            const statusEl = document.getElementById('qcSaveStatus');
+
+            try {
+                const res = await fetch(`${API_URL}/qc-intelligence/gate-options`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    statusEl.textContent = data.message || 'Failed to load quality gate options.';
+                    equipmentSelect.innerHTML = '<option value="">No equipment loaded</option>';
+                    staffSelect.innerHTML = '<option value="">No staff loaded</option>';
+                    return;
+                }
+
+                const equipment = Array.isArray(data.equipment) ? data.equipment : [];
+                const staff = Array.isArray(data.staff) ? data.staff : [];
+
+                if (!equipment.length) {
+                    equipmentSelect.innerHTML = '<option value="">No equipment available</option>';
+                } else {
+                    equipmentSelect.innerHTML = equipment.map((item) => {
+                        const nextService = item.nextServiceDate ? new Date(item.nextServiceDate).toLocaleDateString() : 'N/A';
+                        return `<option value="${item.id}">${item.name} - ${item.department} (${item.status}, next: ${nextService})</option>`;
+                    }).join('');
+                }
+
+                if (!staff.length) {
+                    staffSelect.innerHTML = '<option value="">No staff available</option>';
+                } else {
+                    staffSelect.innerHTML = staff.map((item) => (
+                        `<option value="${item.id}">${item.fullName} (${item.roleName})</option>`
+                    )).join('');
+                }
+            } catch (error) {
+                statusEl.textContent = 'Failed to load quality gate options.';
+                equipmentSelect.innerHTML = '<option value="">No equipment loaded</option>';
+                staffSelect.innerHTML = '<option value="">No staff loaded</option>';
+            }
+        }
+
         document.getElementById('saveQcRunBtn').addEventListener('click', async () => {
             const statusEl = document.getElementById('qcSaveStatus');
             const alertEl = document.getElementById('westgardAlert');
             const value = Number(document.getElementById('qcValueInput').value);
             const analyteMeta = parseAnalyteLabel(document.getElementById('analyteSelect').value);
+            const equipmentId = document.getElementById('equipmentSelect').value;
+            const staffId = document.getElementById('staffSelect').value;
 
             if (Number.isNaN(value)) {
                 statusEl.textContent = 'Please enter a valid numeric value.';
+                return;
+            }
+
+            if (!equipmentId || !staffId) {
+                statusEl.textContent = 'Select equipment and staff before saving QC run.';
                 return;
             }
 
@@ -167,7 +239,10 @@
                 },
                 body: JSON.stringify({
                     analyte: analyteMeta.analyte,
+                    testCode: analyteMeta.analyte,
                     controlLevel: analyteMeta.controlLevel,
+                    equipmentId,
+                    staffId,
                     value,
                     mean,
                     sd
@@ -176,7 +251,13 @@
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                statusEl.textContent = data.message || 'Failed to save QC run.';
+                if (data.code === 'QC_GATE_BLOCKED' && Array.isArray(data.gateReasons)) {
+                    statusEl.textContent = `QC blocked: ${data.gateReasons.join(' | ')}`;
+                    alertEl.className = 'text-danger fw-bold small mt-1';
+                    alertEl.textContent = 'QC blocked by quality gate. Resolve equipment/staff competency issues first.';
+                } else {
+                    statusEl.textContent = data.message || 'Failed to save QC run.';
+                }
                 return;
             }
 
@@ -194,6 +275,13 @@
 
             statusEl.textContent = `QC run saved (${runStatus}).`;
         });
+
+        loadQcGateOptions();
     </script>
 </body>
 </html>
+
+
+
+
+

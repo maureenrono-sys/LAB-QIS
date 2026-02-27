@@ -2,6 +2,7 @@ const DEPT_API_URL = 'http://localhost:5000/api';
 const DEPT_TOKEN = localStorage.getItem('token');
 const DEPT_ROLE_KEY = localStorage.getItem('roleKey') || '';
 const DEPARTMENT_NAME = window.DEPARTMENT_NAME || '';
+const DEPT_ORIGIN = 'http://localhost:5000';
 
 if (!DEPT_TOKEN) {
     window.location.href = 'index.html';
@@ -25,21 +26,29 @@ function printSOP(pdfUrl) {
 
 function renderDocRows(items, emptyMessage) {
     if (!items.length) {
-        return `<tr><td colspan="4" class="text-muted">${emptyMessage}</td></tr>`;
+        return `<div class="dept-doc-empty text-muted">${emptyMessage}</div>`;
     }
 
     return items.map((doc) => {
         const path = (doc.filePath || '').replace(/\\/g, '/');
+        const title = doc.title || 'Untitled Document';
+        const version = doc.version || '1.0';
         return `
-            <tr>
-                <td><strong>${doc.title}</strong></td>
-                <td><span class="badge bg-secondary">v${doc.version || '1.0'}</span></td>
-                <td><span class="badge bg-success">Active</span></td>
-                <td class="text-end">
-                    <a href="http://localhost:5000/${path}" target="_blank" class="btn btn-sm btn-outline-primary mx-1"><i class="bi bi-eye"></i> View</a>
-                    <button class="btn btn-sm btn-outline-success mx-1" onclick="printSOP('http://localhost:5000/${path}')"><i class="bi bi-printer"></i> Print</button>
-                </td>
-            </tr>
+            <article class="dept-doc-card">
+                <div class="dept-doc-cover">
+                    <div class="dept-doc-cover-title">${title}</div>
+                </div>
+                <div class="dept-doc-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary">v${version}</span>
+                        <span class="badge bg-success">Active</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="${DEPT_ORIGIN}/${path}" target="_blank" class="btn btn-sm btn-outline-primary flex-fill"><i class="bi bi-eye"></i> View</a>
+                        <button class="btn btn-sm btn-outline-success flex-fill" onclick="printSOP('${DEPT_ORIGIN}/${path}')"><i class="bi bi-printer"></i> Print</button>
+                    </div>
+                </div>
+            </article>
         `;
     }).join('');
 }
@@ -62,8 +71,8 @@ async function loadDepartmentDocs() {
         const docs = await res.json();
 
         if (!res.ok) {
-            sopBody.innerHTML = `<tr><td colspan="4" class="text-danger">Failed to load SOPs.</td></tr>`;
-            jobAidBody.innerHTML = `<tr><td colspan="4" class="text-danger">Failed to load Job Aids.</td></tr>`;
+            sopBody.innerHTML = `<div class="dept-doc-empty text-danger">Failed to load SOPs.</div>`;
+            jobAidBody.innerHTML = `<div class="dept-doc-empty text-danger">Failed to load Job Aids.</div>`;
             return;
         }
 
@@ -74,8 +83,8 @@ async function loadDepartmentDocs() {
         sopBody.innerHTML = renderDocRows(sopDocs, `No ${DEPARTMENT_NAME} SOPs uploaded yet.`);
         jobAidBody.innerHTML = renderDocRows(jobAidDocs, `No ${DEPARTMENT_NAME} Job Aids uploaded yet.`);
     } catch (error) {
-        sopBody.innerHTML = `<tr><td colspan="4" class="text-danger">Unable to reach server.</td></tr>`;
-        jobAidBody.innerHTML = `<tr><td colspan="4" class="text-danger">Unable to reach server.</td></tr>`;
+        sopBody.innerHTML = `<div class="dept-doc-empty text-danger">Unable to reach server.</div>`;
+        jobAidBody.innerHTML = `<div class="dept-doc-empty text-danger">Unable to reach server.</div>`;
     }
 }
 

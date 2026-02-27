@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations Center | Lab-QIS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="ops-page">
+    <div id="sidebar">
+        <div class="text-center pb-4 border-bottom border-secondary">
+            <h4 class="text-white fw-bold">LAB-QIS</h4>
+        </div>
+        <div class="mt-3">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="departments.html" class="nav-link">Departments</a>
+            <a href="qc.html" class="nav-link">Quality Control</a>
+            <a href="indicators.html" class="nav-link">Quality Indicators</a>
+            <a href="equipment.html" class="nav-link">Equipment Log</a>
+            <a href="nc-capa.html" class="nav-link">NC & CAPA</a>
+            <a href="documents.html" class="nav-link">Documents</a>
+            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
+            <a href="analytics.html" class="nav-link">Risk & Analytics</a>
+            <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
+            <a href="operations-center.html" class="nav-link active">Operations Center</a>
+            <a href="client-feedback.html" class="nav-link">Client Feedback</a>
+            <a href="admin-portal.html" class="nav-link">Admin Portal</a>
+        </div>
+    </div>
+
+    <div class="main-content-area">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-navy mb-1">Operations Center</h3>
+                <p class="text-muted mb-0">Frontend for backend-only modules: SOP workflow, staff competency, risks, automation, and reports.</p>
+            </div>
+            <span id="opsRoleBadge" class="badge bg-dark">Restricted</span>
+        </div>
+
+        <div id="accessGuard"></div>
+        <div id="opsContent" class="d-none">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="card card-clinical p-3 h-100 ops-section-card ops-section-sop">
+                        <h6 class="fw-bold ops-section-title">SOP Lifecycle (Backend: `/api/sops/*`)</h6>
+                        <form id="createSopForm" class="row g-2 mb-2">
+                            <div class="col-4"><input id="sopCode" class="form-control form-control-sm" placeholder="Code" required></div>
+                            <div class="col-8"><input id="sopTitle" class="form-control form-control-sm" placeholder="Title" required></div>
+                            <div class="col-8"><input id="sopIsoClause" class="form-control form-control-sm" placeholder="ISO Clause"></div>
+                            <div class="col-4"><button class="btn btn-sm btn-primary w-100">Create SOP</button></div>
+                        </form>
+                        <form id="uploadSopVersionForm" class="row g-2 mb-2">
+                            <div class="col-6"><input id="versionSopId" class="form-control form-control-sm" placeholder="SOP ID" required></div>
+                            <div class="col-6"><input id="versionNo" class="form-control form-control-sm" placeholder="Version No" required></div>
+                            <div class="col-12"><input id="versionFilePath" class="form-control form-control-sm" placeholder="File Path/URL" required></div>
+                            <div class="col-6"><input type="date" id="versionEffectiveDate" class="form-control form-control-sm"></div>
+                            <div class="col-6"><input type="date" id="versionExpiryDate" class="form-control form-control-sm"></div>
+                            <div class="col-8"><input id="versionChangeSummary" class="form-control form-control-sm" placeholder="Change Summary"></div>
+                            <div class="col-4"><button class="btn btn-sm btn-outline-primary w-100">Upload Version</button></div>
+                        </form>
+                        <form id="submitSopApprovalForm" class="row g-2 mb-2">
+                            <div class="col-6"><input id="submitSopId" class="form-control form-control-sm" placeholder="SOP ID" required></div>
+                            <div class="col-6"><input id="submitSopVersionId" class="form-control form-control-sm" placeholder="SOP Version ID" required></div>
+                            <div class="col-8"><input id="submitApproverName" class="form-control form-control-sm" placeholder="Approver Name"></div>
+                            <div class="col-4"><button class="btn btn-sm btn-outline-warning w-100">Submit Approval</button></div>
+                        </form>
+                        <form id="sopApprovalActionForm" class="row g-2 mb-2">
+                            <div class="col-5"><input id="approvalId" class="form-control form-control-sm" placeholder="Approval ID" required></div>
+                            <div class="col-4">
+                                <select id="approvalAction" class="form-select form-select-sm">
+                                    <option value="approve">Approve</option>
+                                    <option value="reject">Reject</option>
+                                </select>
+                            </div>
+                            <div class="col-3"><button class="btn btn-sm btn-outline-danger w-100">Apply</button></div>
+                            <div class="col-12"><input id="approvalComment" class="form-control form-control-sm" placeholder="Comment"></div>
+                        </form>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="small">Compliance and Expiring</strong>
+                            <button id="refreshSopMetricsBtn" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                        </div>
+                        <div id="sopMetrics" class="small text-muted mb-2">No data loaded.</div>
+                        <div id="expiringSopsTable" class="table-responsive"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card card-clinical p-3 h-100 ops-section-card ops-section-staff">
+                        <h6 class="fw-bold ops-section-title">Staff Competency (Backend: `/api/staff/*`)</h6>
+                        <form id="createStaffForm" class="row g-2 mb-2">
+                            <div class="col-4"><input id="staffNo" class="form-control form-control-sm" placeholder="Staff No" required></div>
+                            <div class="col-5"><input id="staffFullName" class="form-control form-control-sm" placeholder="Full Name" required></div>
+                            <div class="col-3"><button class="btn btn-sm btn-primary w-100">Create</button></div>
+                            <div class="col-12"><input id="staffRoleName" class="form-control form-control-sm" placeholder="Role Name" required></div>
+                        </form>
+                        <form id="addCompetencyForm" class="row g-2 mb-2">
+                            <div class="col-4"><input id="competencyStaffId" class="form-control form-control-sm" placeholder="Staff ID" required></div>
+                            <div class="col-4"><input id="competencyTestCode" class="form-control form-control-sm" placeholder="Test Code" required></div>
+                            <div class="col-4"><button class="btn btn-sm btn-outline-primary w-100">Add Competency</button></div>
+                            <div class="col-4"><input type="date" id="competencyAssessedAt" class="form-control form-control-sm" required></div>
+                            <div class="col-4"><input type="date" id="competencyExpiresAt" class="form-control form-control-sm" required></div>
+                            <div class="col-4">
+                                <select id="competencyStatus" class="form-select form-select-sm">
+                                    <option value="Competent">Competent</option>
+                                    <option value="Needs Retraining">Needs Retraining</option>
+                                    <option value="Expired">Expired</option>
+                                </select>
+                            </div>
+                        </form>
+                        <form id="recordTrainingForm" class="row g-2 mb-2">
+                            <div class="col-5"><input id="trainingTitle" class="form-control form-control-sm" placeholder="Training Title" required></div>
+                            <div class="col-3"><input type="date" id="trainingDate" class="form-control form-control-sm" required></div>
+                            <div class="col-4"><button class="btn btn-sm btn-outline-secondary w-100">Record Training</button></div>
+                            <div class="col-6"><input id="trainingTrainerName" class="form-control form-control-sm" placeholder="Trainer Name"></div>
+                            <div class="col-6"><input id="trainingStaffIds" class="form-control form-control-sm" placeholder="Staff IDs comma separated"></div>
+                        </form>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="small">Compliance and Skill Matrix</strong>
+                            <button id="refreshStaffMetricsBtn" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                        </div>
+                        <div id="staffMetrics" class="small text-muted mb-2">No data loaded.</div>
+                        <div id="staffExpiryList" class="small mb-2"></div>
+                        <div id="skillMatrixTable" class="table-responsive"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="card card-clinical p-3 h-100 ops-section-card ops-section-risk">
+                        <h6 class="fw-bold ops-section-title">Risk Register (Backend: `/api/risks/*`)</h6>
+                        <form id="createRiskForm" class="row g-2 mb-2">
+                            <div class="col-6"><input id="riskTitle" class="form-control form-control-sm" placeholder="Risk Title" required></div>
+                            <div class="col-3"><input id="riskLikelihood" type="number" min="1" max="5" class="form-control form-control-sm" placeholder="Likeli." required></div>
+                            <div class="col-3"><input id="riskImpact" type="number" min="1" max="5" class="form-control form-control-sm" placeholder="Impact" required></div>
+                            <div class="col-8"><input id="riskHazard" class="form-control form-control-sm" placeholder="Hazard" required></div>
+                            <div class="col-4"><button class="btn btn-sm btn-primary w-100">Create Risk</button></div>
+                            <div class="col-4"><input id="riskControlEffectiveness" type="number" min="0" max="100" class="form-control form-control-sm" placeholder="Control %"></div>
+                            <div class="col-4"><input id="riskOwnerName" class="form-control form-control-sm" placeholder="Owner"></div>
+                            <div class="col-4">
+                                <select id="riskSourceType" class="form-select form-select-sm">
+                                    <option value="MANUAL">MANUAL</option>
+                                    <option value="QC">QC</option>
+                                    <option value="NC">NC</option>
+                                    <option value="AUDIT">AUDIT</option>
+                                </select>
+                            </div>
+                        </form>
+                        <form id="updateRiskForm" class="row g-2 mb-2">
+                            <div class="col-5"><input id="updateRiskId" class="form-control form-control-sm" placeholder="Risk ID" required></div>
+                            <div class="col-2"><input id="updateLikelihood" type="number" min="1" max="5" class="form-control form-control-sm" placeholder="L"></div>
+                            <div class="col-2"><input id="updateImpact" type="number" min="1" max="5" class="form-control form-control-sm" placeholder="I"></div>
+                            <div class="col-3"><button class="btn btn-sm btn-outline-warning w-100">Update</button></div>
+                            <div class="col-4"><input id="updateControlEffectiveness" type="number" min="0" max="100" class="form-control form-control-sm" placeholder="Control %"></div>
+                            <div class="col-8">
+                                <select id="updateRiskStatus" class="form-select form-select-sm">
+                                    <option value="">No status change</option>
+                                    <option value="Open">Open</option>
+                                    <option value="Mitigating">Mitigating</option>
+                                    <option value="Controlled">Controlled</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+                        </form>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="small">Open Risk Matrix</strong>
+                            <button id="refreshRiskMatrixBtn" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                        </div>
+                        <div id="riskMatrixTable" class="table-responsive"></div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card card-clinical p-3 h-100 ops-section-card ops-section-audit">
+                        <h6 class="fw-bold ops-section-title">SLIPTA Automation (Backend: `/api/slipta/*`)</h6>
+                        <form id="createSliptaAssessmentForm" class="row g-2 mb-2">
+                            <div class="col-4"><input id="sliptaAssessmentDate" type="date" class="form-control form-control-sm"></div>
+                            <div class="col-8"><button class="btn btn-sm btn-primary w-100">Create Assessment</button></div>
+                            <div class="col-12"><textarea id="sliptaItemsJson" class="form-control form-control-sm" rows="4" required>[{"sliptaChecklistId":null,"score":3,"maxScore":5,"evidence":"Sample evidence"}]</textarea></div>
+                        </form>
+                        <form id="getSliptaAssessmentForm" class="row g-2 mb-2">
+                            <div class="col-8"><input id="getSliptaAssessmentId" class="form-control form-control-sm" placeholder="Assessment ID" required></div>
+                            <div class="col-4"><button class="btn btn-sm btn-outline-primary w-100">Load Assessment</button></div>
+                        </form>
+                        <form id="linkGapToCapaForm" class="row g-2 mb-2">
+                            <div class="col-8"><input id="gapItemId" class="form-control form-control-sm" placeholder="Gap Item ID" required></div>
+                            <div class="col-4"><button class="btn btn-sm btn-outline-warning w-100">Link GAP</button></div>
+                            <div class="col-6"><input id="gapOwnerName" class="form-control form-control-sm" placeholder="Owner Name"></div>
+                            <div class="col-6"><input id="gapDueDate" type="date" class="form-control form-control-sm" required></div>
+                            <div class="col-12"><input id="gapNcId" class="form-control form-control-sm" placeholder="NC ID (optional)"></div>
+                        </form>
+                        <div id="sliptaAssessmentPanel" class="small text-muted">No assessment loaded.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-clinical p-3 ops-section-card ops-section-analytics">
+                <h6 class="fw-bold ops-section-title">Analytics Engine + Management Review (Backend: `/api/analytics-engine/*`, `/api/reports/management-review`)</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-3"><button id="loadManagementReviewBtn" class="btn btn-sm btn-outline-primary w-100">Load Management Review</button></div>
+                    <div class="col-md-3"><button id="loadDepartmentCompareBtn" class="btn btn-sm btn-outline-primary w-100">Load Department Compare</button></div>
+                    <div class="col-md-3"><button id="loadTrendProjectionsBtn" class="btn btn-sm btn-outline-primary w-100">Load Trend Projections</button></div>
+                    <div class="col-md-3">
+                        <form id="generateMonthlyReportForm" class="d-flex gap-2">
+                            <input id="monthlyPeriod" class="form-control form-control-sm" placeholder="YYYY-MM">
+                            <button class="btn btn-sm btn-primary">Monthly Report</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-4">
+                        <button id="downloadMonthlyPdfBtn" class="btn btn-sm btn-outline-danger w-100">Generate Monthly Quality PDF</button>
+                    </div>
+                    <div class="col-md-8 small text-muted d-flex align-items-center">
+                        Uses `/api/analytics-engine/reports/:id/pdf` with the selected `YYYY-MM` period. If empty, it uses current/latest period.
+                    </div>
+                </div>
+                <div id="managementReviewPanel" class="small text-muted mb-2">Management review not loaded.</div>
+                <div class="row g-2">
+                    <div class="col-md-4" id="monthlyReportPanel"></div>
+                    <div class="col-md-4" id="departmentComparePanel"></div>
+                    <div class="col-md-4" id="trendProjectionsPanel"></div>
+                </div>
+            </div>
+
+            <div class="card card-clinical p-3 mt-3 ops-section-card ops-section-logs">
+                <h6 class="fw-bold ops-section-title">System Logs (Backend: `/api/system-logs/*`)</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-3">
+                        <button id="loadLoginLogsBtn" class="btn btn-sm btn-outline-primary w-100">Load Login Logs</button>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="loadErrorLogsBtn" class="btn btn-sm btn-outline-danger w-100">Load Error Logs</button>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="loadRequestLogsBtn" class="btn btn-sm btn-outline-secondary w-100">Load Request Logs</button>
+                    </div>
+                    <div class="col-md-3 small text-muted d-flex align-items-center">
+                        Visible to Admin, Lab Manager, and QA Manager. Logs are stored in DB and mirrored to `logs/*.log` files.
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-4" id="loginLogsPanel"></div>
+                    <div class="col-md-4" id="errorLogsPanel"></div>
+                    <div class="col-md-4" id="requestLogsPanel"></div>
+                </div>
+            </div>
+
+            <div class="card card-clinical p-3 mt-3 ops-section-card ops-section-controls">
+                <h6 class="fw-bold ops-section-title">Production Controls (Admin)</h6>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <button id="enableMaintenanceBtn" class="btn btn-sm btn-outline-warning w-100">Enable Maintenance</button>
+                    </div>
+                    <div class="col-md-4">
+                        <button id="disableMaintenanceBtn" class="btn btn-sm btn-outline-success w-100">Disable Maintenance</button>
+                    </div>
+                    <div class="col-md-4">
+                        <button id="exportBackupBtn" class="btn btn-sm btn-outline-primary w-100">Export Backup JSON</button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small">Maintenance Reason</label>
+                        <input id="maintenanceReason" class="form-control form-control-sm" placeholder="Scheduled deployment or database updates">
+                    </div>
+                </div>
+            </div>
+
+            <div id="opsStatus" class="alert alert-light mt-3 mb-0">Ready.</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script src="operations-center.js"></script>
+</body>
+</html>
+
+
+
+
+

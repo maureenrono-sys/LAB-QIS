@@ -28,6 +28,11 @@ const AuthorizationMatrix = require('./AuthorizationMatrix');
 const SliptaChecklist = require('./SliptaChecklist');
 const SliptaAssessment = require('./SliptaAssessment');
 const SliptaAssessmentItem = require('./SliptaAssessmentItem');
+const LoginLog = require('./LoginLog');
+const ErrorLog = require('./ErrorLog');
+const UserPreference = require('./UserPreference');
+const ClientFeedback = require('./ClientFeedback');
+const RequestAuditLog = require('./RequestAuditLog');
 
 // Relationships
 Laboratory.hasMany(User, { foreignKey: 'labId', onDelete: 'CASCADE' });
@@ -125,6 +130,27 @@ SliptaAssessmentItem.belongsTo(SliptaAssessment, { foreignKey: 'sliptaAssessment
 SliptaChecklist.hasMany(SliptaAssessmentItem, { foreignKey: 'sliptaChecklistId', onDelete: 'SET NULL' });
 SliptaAssessmentItem.belongsTo(SliptaChecklist, { foreignKey: 'sliptaChecklistId' });
 
+Laboratory.hasMany(LoginLog, { foreignKey: 'labId', onDelete: 'SET NULL' });
+LoginLog.belongsTo(Laboratory, { foreignKey: 'labId' });
+User.hasMany(LoginLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
+LoginLog.belongsTo(User, { foreignKey: 'userId' });
+
+Laboratory.hasMany(ErrorLog, { foreignKey: 'labId', onDelete: 'SET NULL' });
+ErrorLog.belongsTo(Laboratory, { foreignKey: 'labId' });
+User.hasMany(ErrorLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
+ErrorLog.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasOne(UserPreference, { foreignKey: 'userId', onDelete: 'CASCADE' });
+UserPreference.belongsTo(User, { foreignKey: 'userId' });
+
+Laboratory.hasMany(ClientFeedback, { foreignKey: 'labId', onDelete: 'CASCADE' });
+ClientFeedback.belongsTo(Laboratory, { foreignKey: 'labId' });
+
+Laboratory.hasMany(RequestAuditLog, { foreignKey: 'labId', onDelete: 'SET NULL' });
+RequestAuditLog.belongsTo(Laboratory, { foreignKey: 'labId' });
+User.hasMany(RequestAuditLog, { foreignKey: 'userId', onDelete: 'SET NULL' });
+RequestAuditLog.belongsTo(User, { foreignKey: 'userId' });
+
 // This is the object your controllers use
 module.exports = {
     User,
@@ -156,5 +182,10 @@ module.exports = {
     AuthorizationMatrix,
     SliptaChecklist,
     SliptaAssessment,
-    SliptaAssessmentItem
+    SliptaAssessmentItem,
+    LoginLog,
+    ErrorLog,
+    RequestAuditLog,
+    UserPreference,
+    ClientFeedback
 };

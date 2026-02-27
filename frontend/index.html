@@ -171,6 +171,8 @@
             localStorage.setItem('roleKey', data.user.roleKey || '');
             localStorage.setItem('labName', data.user.labName || '');
             localStorage.setItem('fullName', data.user.fullName || '');
+            localStorage.setItem('profilePhotoUrl', data.user.profilePhotoUrl || '');
+            localStorage.setItem('lastLoginAt', data.user.lastLoginAt || '');
             localStorage.setItem('isDemoMode', isDemo ? 'true' : 'false');
             localStorage.removeItem('viewRoleKey');
         }

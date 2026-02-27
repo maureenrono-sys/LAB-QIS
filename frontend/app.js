@@ -29,6 +29,7 @@ const isDemoMode = localStorage.getItem('isDemoMode') === 'true';
 let currentRoleKey = (loggedInRoleKey === ROLE_KEYS.ADMIN && isDemoMode && previewRoleKey)
     ? previewRoleKey
     : loggedInRoleKey;
+let notificationPoller = null;
 
 if (!token && !window.location.href.includes('index.html')) {
     window.location.href = 'index.html';
@@ -160,7 +161,258 @@ function logout() {
     localStorage.removeItem('viewRoleKey');
     localStorage.removeItem('labName');
     localStorage.removeItem('fullName');
+    localStorage.removeItem('profilePhotoUrl');
+    localStorage.removeItem('lastLoginAt');
     window.location.href = 'index.html';
+}
+
+function ensureProfileSettingsModal() {
+    if (document.getElementById('profileSettingsModal')) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'profileSettingsModal';
+    modal.tabIndex = -1;
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Profile & Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Full Name</label>
+                            <input id="profileFullName" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Email</label>
+                            <input id="profileEmail" class="form-control form-control-sm" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Role</label>
+                            <input id="profileRole" class="form-control form-control-sm" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Lab Name</label>
+                            <input id="profileLabNameView" class="form-control form-control-sm" readonly>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <h6 class="mb-2">Security</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Current Password</label>
+                            <input id="profileCurrentPassword" type="password" class="form-control form-control-sm" placeholder="Required to change password">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">New Password</label>
+                            <input id="profileNewPassword" type="password" class="form-control form-control-sm" placeholder="Optional">
+                        </div>
+                    </div>
+
+                    <div id="adminLabSettingsSection" class="mt-4 d-none">
+                        <hr>
+                        <h6 class="mb-2">Admin Lab Settings</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Lab Name</label>
+                                <input id="labSettingName" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Lab Type</label>
+                                <select id="labSettingType" class="form-select form-select-sm">
+                                    <option value="Public">Public</option>
+                                    <option value="Private">Private</option>
+                                    <option value="Mid-level">Mid-level</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Registration Number</label>
+                                <input id="labSettingRegNo" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Accreditation Status</label>
+                                <input id="labSettingAccreditation" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small">Address</label>
+                                <textarea id="labSettingAddress" rows="2" class="form-control form-control-sm"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="profileSettingsStatus" class="alert alert-light mt-3 mb-0">Ready.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveProfileSettingsBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+async function loadProfileSettings() {
+    const status = document.getElementById('profileSettingsStatus');
+    if (status) status.className = 'alert alert-info mt-3 mb-0';
+    if (status) status.textContent = 'Loading profile settings...';
+
+    const res = await fetch(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        if (status) status.className = 'alert alert-danger mt-3 mb-0';
+        if (status) status.textContent = data.message || 'Failed to load profile settings.';
+        return null;
+    }
+
+    const user = data.user || {};
+    const lab = user.lab || {};
+    document.getElementById('profileFullName').value = user.fullName || '';
+    document.getElementById('profileEmail').value = user.email || '';
+    document.getElementById('profileRole').value = user.role || '';
+    document.getElementById('profileLabNameView').value = user.labName || '';
+
+    const isAdmin = loggedInRoleKey === ROLE_KEYS.ADMIN;
+    const adminSection = document.getElementById('adminLabSettingsSection');
+    if (adminSection) adminSection.classList.toggle('d-none', !isAdmin);
+    if (isAdmin) {
+        document.getElementById('labSettingName').value = lab.labName || '';
+        document.getElementById('labSettingType').value = lab.labType || 'Private';
+        document.getElementById('labSettingRegNo').value = lab.registrationNumber || '';
+        document.getElementById('labSettingAccreditation').value = lab.accreditationStatus || '';
+        document.getElementById('labSettingAddress').value = lab.address || '';
+    }
+
+    if (status) status.className = 'alert alert-light mt-3 mb-0';
+    if (status) status.textContent = 'Loaded.';
+    return { user, lab };
+}
+
+async function saveProfileSettings() {
+    const status = document.getElementById('profileSettingsStatus');
+    status.className = 'alert alert-info mt-3 mb-0';
+    status.textContent = 'Saving changes...';
+
+    const profilePayload = {
+        fullName: document.getElementById('profileFullName').value.trim()
+    };
+    const currentPassword = document.getElementById('profileCurrentPassword').value;
+    const newPassword = document.getElementById('profileNewPassword').value;
+    if (newPassword) {
+        profilePayload.currentPassword = currentPassword;
+        profilePayload.newPassword = newPassword;
+    }
+
+    const profileRes = await fetch(`${API_URL}/auth/me`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(profilePayload)
+    });
+    const profileData = await profileRes.json().catch(() => ({}));
+    if (!profileRes.ok) {
+        status.className = 'alert alert-danger mt-3 mb-0';
+        status.textContent = profileData.message || 'Failed to save profile.';
+        return;
+    }
+
+    localStorage.setItem('fullName', profileData.user?.fullName || profilePayload.fullName);
+    if (profileData.user?.labName) localStorage.setItem('labName', profileData.user.labName);
+    setLabNameHeading();
+
+    if (loggedInRoleKey === ROLE_KEYS.ADMIN) {
+        const labPayload = {
+            labName: document.getElementById('labSettingName').value.trim(),
+            labType: document.getElementById('labSettingType').value,
+            registrationNumber: document.getElementById('labSettingRegNo').value.trim(),
+            accreditationStatus: document.getElementById('labSettingAccreditation').value.trim(),
+            address: document.getElementById('labSettingAddress').value.trim()
+        };
+
+        const labRes = await fetch(`${API_URL}/auth/lab-settings`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(labPayload)
+        });
+        const labData = await labRes.json().catch(() => ({}));
+        if (!labRes.ok) {
+            status.className = 'alert alert-warning mt-3 mb-0';
+            status.textContent = `Profile saved, but lab settings failed: ${labData.message || 'Unknown error'}`;
+            return;
+        }
+
+        if (labData.lab?.labName) localStorage.setItem('labName', labData.lab.labName);
+        setLabNameHeading();
+    }
+
+    document.getElementById('profileCurrentPassword').value = '';
+    document.getElementById('profileNewPassword').value = '';
+    status.className = 'alert alert-success mt-3 mb-0';
+    status.textContent = 'Settings saved successfully.';
+}
+
+function initProfileMenu() {
+    if (!token || window.location.href.includes('index.html')) return;
+    if (document.getElementById('profileDropdownWrapper')) return;
+    if (typeof bootstrap === 'undefined') return;
+
+    ensureProfileSettingsModal();
+
+    const wrapper = document.createElement('div');
+    wrapper.id = 'profileDropdownWrapper';
+    wrapper.className = 'dropdown';
+    wrapper.innerHTML = `
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="rounded-circle d-inline-flex align-items-center justify-content-center text-white" style="width: 30px; height: 30px; background:#2c3e50; font-size: 0.75rem;">
+                ${(localStorage.getItem('fullName') || 'U').trim().charAt(0).toUpperCase()}
+            </span>
+            <span class="small">${localStorage.getItem('fullName') || 'User'}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><h6 class="dropdown-header">${localStorage.getItem('fullName') || 'User'}</h6></li>
+            <li><span class="dropdown-item-text small text-muted">${ROLE_LABEL_BY_KEY[loggedInRoleKey] || currentRoleLabel || 'User'}</span></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item" type="button" id="openProfileSettingsBtn">Settings</button></li>
+            <li><button class="dropdown-item text-danger" type="button" id="profileLogoutBtn">Logout</button></li>
+        </ul>
+    `;
+
+    const welcomeBtn = document.getElementById('userWelcomeBtn');
+    if (welcomeBtn) {
+        welcomeBtn.style.display = 'none';
+    }
+
+    const topbarActions = document.querySelector('.dashboard-topbar-actions');
+    if (topbarActions) {
+        topbarActions.appendChild(wrapper);
+    } else {
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '12px';
+        wrapper.style.right = '16px';
+        wrapper.style.zIndex = '1080';
+        document.body.appendChild(wrapper);
+    }
+
+    document.getElementById('openProfileSettingsBtn')?.addEventListener('click', async () => {
+        await loadProfileSettings();
+        const modal = new bootstrap.Modal(document.getElementById('profileSettingsModal'));
+        modal.show();
+    });
+
+    document.getElementById('saveProfileSettingsBtn')?.addEventListener('click', saveProfileSettings);
+    document.getElementById('profileLogoutBtn')?.addEventListener('click', logout);
 }
 
 function initRolePreviewControl() {
@@ -205,10 +457,11 @@ function renderDashboardByRole(data) {
             subtitle: 'System-wide quality governance and oversight actions.',
             metrics: { m1: 'My Star Level', m2: 'Global Avg', m3: 'Critical Alerts' },
             actions: [
-                { href: 'analytics.html', label: 'View Analytics', btn: 'btn-primary' },
+                { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-primary' },
                 { href: 'audits.html', label: 'Audit Oversight', btn: 'btn-warning' },
                 { href: 'documents.html', label: 'Document Control', btn: 'btn-success' },
-                { href: 'equipment.html', label: 'Equipment Governance', btn: 'btn-sidebar-primary' }
+                { href: 'equipment.html', label: 'Equipment Governance', btn: 'btn-sidebar-primary' },
+                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-outline-dark' }
             ]
         },
         [ROLE_KEYS.LAB_MANAGER]: {
@@ -217,9 +470,10 @@ function renderDashboardByRole(data) {
             metrics: { m1: 'Lab Star Level', m2: 'Peer Average', m3: 'Priority Alerts' },
             actions: [
                 { href: 'audits.html', label: 'Run Self-Assessment', btn: 'btn-primary' },
-                { href: 'analytics.html', label: 'Risk & Analytics', btn: 'btn-warning' },
+                { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-warning' },
                 { href: 'documents.html', label: 'Approve SOPs', btn: 'btn-success' },
-                { href: 'equipment.html', label: 'Equipment Planning', btn: 'btn-sidebar-primary' }
+                { href: 'equipment.html', label: 'Equipment Planning', btn: 'btn-sidebar-primary' },
+                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-outline-dark' }
             ]
         },
         [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: {
@@ -229,8 +483,9 @@ function renderDashboardByRole(data) {
             actions: [
                 { href: 'qc.html', label: 'Monitor IQC', btn: 'btn-primary' },
                 { href: 'nc-capa.html', label: 'NC & CAPA Tracker', btn: 'btn-warning' },
-                { href: 'audits.html', label: 'Audit Records', btn: 'btn-sidebar-primary' },
-                { href: 'documents.html', label: 'Controlled Documents', btn: 'btn-success' }
+                { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-sidebar-primary' },
+                { href: 'documents.html', label: 'Controlled Documents', btn: 'btn-success' },
+                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-outline-dark' }
             ]
         },
         [ROLE_KEYS.LAB_TECHNOLOGIST]: {
@@ -241,7 +496,7 @@ function renderDashboardByRole(data) {
                 { href: 'qc.html', label: 'Daily QC', btn: 'btn-primary' },
                 { href: 'equipment.html', label: 'Maintenance Log', btn: 'btn-warning' },
                 { href: 'indicators.html', label: 'Record Indicators', btn: 'btn-sidebar-primary' },
-                { href: 'nc-capa.html', label: 'Report NC/CAPA', btn: 'btn-success' }
+                { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-success' }
             ]
         }
     };
@@ -323,15 +578,15 @@ function applyRoleNavigation() {
         [ROLE_KEYS.ADMIN]: null,
         [ROLE_KEYS.LAB_MANAGER]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html', 'equipment.html',
-            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html'
+            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html', 'benchmarking.html', 'operations-center.html', 'client-feedback.html'
         ]),
         [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html', 'equipment.html',
-            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html'
+            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html', 'benchmarking.html', 'operations-center.html', 'client-feedback.html'
         ]),
         [ROLE_KEYS.LAB_TECHNOLOGIST]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html',
-            'equipment.html', 'nc-capa.html', 'documents.html'
+            'equipment.html', 'nc-capa.html', 'documents.html', 'benchmarking.html', 'client-feedback.html'
         ])
     };
 
@@ -466,7 +721,6 @@ async function loadDashboardOperationalCards() {
                 equipmentItems = equipmentItems.concat(items);
             }
         } catch (error) {
-            console.error(`Equipment summary error for ${dept}:`, error);
         }
     }));
 
@@ -501,6 +755,82 @@ async function loadDashboardOperationalCards() {
     };
 
     renderDashboardOperationalCards(summary);
+}
+
+function renderDashboardIntelligenceSummary(summary) {
+    const container = document.getElementById('enterprisePulseRow');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="intel-pulse-card">
+                <div class="label">Client Satisfaction</div>
+                <div class="value">${summary.avgSatisfaction}</div>
+                <div class="note">Average feedback rating this period.</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="intel-pulse-card">
+                <div class="label">Feedback Open Cases</div>
+                <div class="value">${summary.openFeedback}</div>
+                <div class="note">Complaints/suggestions not closed yet.</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="intel-pulse-card">
+                <div class="label">Audit Findings</div>
+                <div class="value">${summary.auditFindings}</div>
+                <div class="note">Total findings requiring follow-up.</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="intel-pulse-card">
+                <div class="label">Benchmark Position</div>
+                <div class="value">${summary.percentileLabel}</div>
+                <div class="note">Current percentile against peer labs.</div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadDashboardIntelligenceSummary() {
+    const container = document.getElementById('enterprisePulseRow');
+    if (!container) return;
+
+    try {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const [feedbackAnalyticsRes, feedbackListRes, auditsRes, benchmarkRes] = await Promise.all([
+            fetch(`${API_URL}/client-feedback/analytics/summary`, { headers }).catch(() => null),
+            fetch(`${API_URL}/client-feedback`, { headers }).catch(() => null),
+            fetch(`${API_URL}/audits`, { headers }).catch(() => null),
+            fetch(`${API_URL}/benchmarks/summary`, { headers }).catch(() => null)
+        ]);
+
+        const feedbackAnalytics = feedbackAnalyticsRes && feedbackAnalyticsRes.ok ? await feedbackAnalyticsRes.json() : {};
+        const feedbackList = feedbackListRes && feedbackListRes.ok ? await feedbackListRes.json() : [];
+        const audits = auditsRes && auditsRes.ok ? await auditsRes.json() : [];
+        const benchmark = benchmarkRes && benchmarkRes.ok ? await benchmarkRes.json() : {};
+
+        const avgRaw = Number(feedbackAnalytics.avgSatisfaction || 0);
+        const avgSatisfaction = Number.isFinite(avgRaw) && avgRaw > 0 ? `${avgRaw.toFixed(1)}/5` : 'N/A';
+        const openFeedback = Array.isArray(feedbackList)
+            ? feedbackList.filter((item) => !['Closed', 'Action Implemented'].includes(item.status)).length
+            : 0;
+        const auditFindings = Array.isArray(audits)
+            ? audits.reduce((acc, audit) => acc + Number(audit.findingsCount || 0), 0)
+            : 0;
+        const percentile = Number(benchmark.myPercentile);
+        const percentileLabel = Number.isFinite(percentile) ? `P${Math.round(percentile)}` : 'N/A';
+
+        renderDashboardIntelligenceSummary({
+            avgSatisfaction,
+            openFeedback,
+            auditFindings,
+            percentileLabel
+        });
+    } catch (error) {
+        container.innerHTML = `<div class="col-12"><div class="alert alert-warning mb-0">Unable to load cross-module dashboard intelligence right now.</div></div>`;
+    }
 }
 
 function renderWeeklyCapaReview(ncItems) {
@@ -612,11 +942,11 @@ async function loadHomeStats() {
         const data = await res.json();
         renderDashboardByRole(data);
         loadDashboardOperationalCards();
+        loadDashboardIntelligenceSummary();
         loadWeeklyCapaReview();
         initTestingChart();
         runServiceChecks();
     } catch (err) {
-        console.error('Error loading stats:', err);
     }
 }
 
@@ -774,9 +1104,11 @@ async function checkNotifications() {
     }
 }
 
-// Call this every 30 seconds
-setInterval(checkNotifications, 30000);
-checkNotifications();
+function initNotificationPolling() {
+    if (notificationPoller) return;
+    notificationPoller = setInterval(checkNotifications, 30000);
+    checkNotifications();
+}
 
 async function loadNC() {
     const contentArea = document.getElementById('contentArea');
@@ -1284,9 +1616,112 @@ async function markRead(id) {
     loadNotifsIntoSidebar(); // Update the list
 }
 
-// Check for notifications every 10 seconds
-setInterval(checkNotifications, 10000);
-checkNotifications();
+function ensureGlobalToastContainer() {
+    let container = document.getElementById('globalToastContainer');
+    if (container) return container;
+
+    container = document.createElement('div');
+    container.id = 'globalToastContainer';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1090';
+    document.body.appendChild(container);
+    return container;
+}
+
+function showGlobalAlertToast(title, message, variant = 'warning') {
+    if (typeof bootstrap === 'undefined') return;
+
+    const container = ensureGlobalToastContainer();
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast text-bg-${variant} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <strong>${title}</strong><br>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    `;
+
+    container.appendChild(toastEl);
+    const toast = new bootstrap.Toast(toastEl, { delay: 9000 });
+    toast.show();
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+}
+
+function isSameLocalDate(dateA, dateB) {
+    return dateA.getFullYear() === dateB.getFullYear()
+        && dateA.getMonth() === dateB.getMonth()
+        && dateA.getDate() === dateB.getDate();
+}
+
+async function runGlobalAlertsEngine() {
+    if (!token || window.location.href.includes('index.html')) return;
+
+    const headers = { 'Authorization': `Bearer ${token}` };
+    const now = new Date();
+
+    try {
+        const [ncRes, equipmentResponses] = await Promise.all([
+            fetch(`${API_URL}/nc`, { headers }),
+            Promise.all(
+                DASHBOARD_DEPARTMENTS.map((dept) =>
+                    fetch(`${API_URL}/equipment/dept/${encodeURIComponent(dept)}`, { headers }).catch(() => null)
+                )
+            )
+        ]);
+
+        const ncs = ncRes.ok ? await ncRes.json() : [];
+        const overdueNc = ncs.filter((nc) => {
+            if (!nc.deadline) return false;
+            if (nc.status === 'Closed') return false;
+            return new Date(nc.deadline).getTime() < now.getTime();
+        });
+
+        const equipmentSets = await Promise.all(
+            equipmentResponses.map(async (res) => {
+                if (!res || !res.ok) return [];
+                return res.json().catch(() => []);
+            })
+        );
+
+        const equipment = equipmentSets.flat();
+        const seen = new Set();
+        const uniqueEquipment = equipment.filter((item) => {
+            if (!item?.id || seen.has(item.id)) return false;
+            seen.add(item.id);
+            return true;
+        });
+
+        const dueToday = uniqueEquipment.filter((item) => {
+            if (!item.nextServiceDate) return false;
+            return isSameLocalDate(new Date(item.nextServiceDate), now);
+        });
+
+        if (overdueNc.length > 0) {
+            showGlobalAlertToast(
+                'Overdue NC Alert',
+                `${overdueNc.length} non-conformance item(s) are overdue today.`,
+                'danger'
+            );
+        }
+
+        if (dueToday.length > 0) {
+            showGlobalAlertToast(
+                'Maintenance Due Today',
+                `${dueToday.length} equipment item(s) are due for service today.`,
+                'warning'
+            );
+        }
+    } catch (error) {
+    }
+}
+
+initNotificationPolling();
 
 async function loadAudits() {
     if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'SLIPTA Audits')) return;
@@ -1380,7 +1815,12 @@ document.addEventListener('submit', async (e) => {
         });
 
         if (res.ok) {
-            alert("Audit Completed Successfully!");
+            const data = await res.json().catch(() => ({}));
+            const autoNcCount = Number(data.autoNcCreated || 0);
+            const suffix = autoNcCount > 0
+                ? ` ${autoNcCount} NC record(s) were auto-created from zero-score findings.`
+                : '';
+            alert(`Audit Completed Successfully!${suffix}`);
             loadAudits();
             loadHomeStats(); // Update the stars on the dashboard
         }
@@ -1423,9 +1863,14 @@ async function loadAnalytics() {
     if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'Risk & Analytics')) return;
     const contentArea = document.getElementById('contentArea');
     contentArea.innerHTML = `
-        <h3>Quality Performance Analytics</h3>
-        <p class="text-muted">Comparing Actual Performance against ISO 15189 Targets</p>
-        <div class="card shadow p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h3 class="mb-1">Quality Performance Analytics</h3>
+                <p class="text-muted mb-0">Comparing actual indicator performance against ISO 15189 targets.</p>
+            </div>
+            <span class="badge bg-primary">Indicator Intelligence</span>
+        </div>
+        <div class="card card-clinical p-4 analytics-chart-card">
             <canvas id="qiChart" width="400" height="150"></canvas>
         </div>
         <div id="riskAssessment" class="mt-4"></div>
@@ -1490,6 +1935,697 @@ async function loadAnalytics() {
     }
 }
 
+async function loadBenchmarking() {
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_TECHNOLOGIST], 'Peer Benchmarking')) return;
+    const contentArea = document.getElementById('contentArea');
+    if (!contentArea) return;
+
+    contentArea.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h3 class="mb-1">Peer-Learning Benchmarking</h3>
+                <p class="text-muted mb-0">Anonymous comparison against system-wide peers.</p>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadBenchmarking()">Refresh</button>
+        </div>
+        <div id="benchmarkSummary" class="alert alert-light border module-status-alert">Loading benchmark summary...</div>
+        <div class="card card-clinical p-3 mb-3 benchmark-chart-card">
+            <canvas id="benchmarkChart" height="120"></canvas>
+        </div>
+        <div id="benchmarkInsights"></div>
+    `;
+
+    const res = await fetch(`${API_URL}/benchmarks/summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        document.getElementById('benchmarkSummary').className = 'alert alert-danger';
+        document.getElementById('benchmarkSummary').textContent = data.message || 'Failed to load benchmark summary.';
+        return;
+    }
+
+    const myStars = Number(data.myPerformance || 0);
+    const globalStars = Number(data.globalAverage || 0);
+    const topStars = Number(data.topPerformer || 0);
+    const percentile = Number(data.percentile || 0);
+    const percentileBand = data.percentileBand || 'No peer data yet';
+    const peer = data.peerLearning || {};
+    const myQi = peer.my || {};
+    const globalQi = peer.global || {};
+    const sampleGuard = data.sampleGuard || {};
+    const tatKpi = data.comparativeKpis?.tat || {};
+
+    const summaryEl = document.getElementById('benchmarkSummary');
+    summaryEl.className = percentile <= 25 ? 'alert alert-warning border module-status-alert' : 'alert alert-success border module-status-alert';
+    summaryEl.innerHTML = `
+        Your latest SLIPTA performance is <strong>${myStars.toFixed(1)} star(s)</strong>.
+        Global average is <strong>${globalStars.toFixed(1)}</strong>, top performer is <strong>${topStars.toFixed(1)}</strong>.
+        You are in <strong>${percentileBand}</strong> (${percentile.toFixed(1)} percentile) across <strong>${Number(data.totalPeerDataPoints || 0)}</strong> anonymized peer data points.
+        ${sampleGuard.hasSufficientPeerSample ? '' : '<br><span class="text-danger">Peer sample is limited; interpret percentile with caution.</span>'}
+    `;
+
+    const ctx = document.getElementById('benchmarkChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['SLIPTA Stars', 'QI Met Rate (%)', 'Avg QI Actual (%)'],
+                datasets: [
+                    {
+                        label: 'My Lab',
+                        data: [myStars, Number(myQi.metRate || 0), Number(myQi.avgActual || 0)],
+                        backgroundColor: 'rgba(52, 152, 219, 0.65)',
+                        borderColor: '#3498db',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Peer Average',
+                        data: [globalStars, Number(globalQi.metRate || 0), Number(globalQi.avgActual || 0)],
+                        backgroundColor: 'rgba(26, 188, 156, 0.45)',
+                        borderColor: '#1abc9c',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    const gapStars = (myStars - globalStars).toFixed(1);
+    const gapMetRate = (Number(myQi.metRate || 0) - Number(globalQi.metRate || 0)).toFixed(1);
+    const insights = [];
+    insights.push(`SLIPTA gap vs peers: ${gapStars} star(s).`);
+    insights.push(`QI met-rate gap vs peers: ${gapMetRate}%`);
+    insights.push(`My QI data points: ${Number(myQi.total || 0)}, peer data points: ${Number(globalQi.total || 0)}.`);
+    if (percentile <= 25) {
+        insights.push('Priority: you are in the bottom quartile; trigger management review and targeted CAPA.');
+    } else if (percentile >= 75) {
+        insights.push('Strength: you are in the top quartile; maintain controls and share best practices.');
+    } else {
+        insights.push('Opportunity: focus on indicators below target to move to top quartile.');
+    }
+    if (tatKpi.percentile !== null && tatKpi.percentile !== undefined) {
+        insights.push(`TAT comparative KPI: median percentile ${tatKpi.percentile} (sample size ${tatKpi.globalSampleSize}).`);
+    }
+
+    document.getElementById('benchmarkInsights').innerHTML = `
+        <div class="card card-clinical p-3">
+            <h6 class="mb-2">Peer-Learning Insights</h6>
+            <ul class="small mb-0">
+                ${insights.map((line) => `<li>${line}</li>`).join('')}
+            </ul>
+        </div>
+    `;
+}
+
+async function loadAdminPortal() {
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN], 'System Admin Portal')) return;
+    const statusEl = document.getElementById('adminPortalStatus');
+    const contentEl = document.getElementById('adminPortalContent');
+    if (!statusEl || !contentEl) return;
+
+    statusEl.className = 'alert alert-info mb-3';
+    statusEl.textContent = 'Loading all labs and performance data...';
+
+    const res = await fetch(`${API_URL}/admin/labs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const labs = await res.json().catch(() => []);
+    if (!res.ok) {
+        statusEl.className = 'alert alert-danger mb-3';
+        statusEl.textContent = labs.message || 'Failed to load labs overview.';
+        return;
+    }
+
+    statusEl.className = 'alert alert-success mb-3';
+    statusEl.textContent = `Loaded ${labs.length} enrolled lab(s).`;
+
+    contentEl.innerHTML = labs.map((lab) => {
+        const perf = lab.latestPerformance || {};
+        const audit = lab.latestAudit || {};
+        const safeLabName = String(lab.labName || '').replace(/"/g, '&quot;');
+        const safeLabType = String(lab.labType || '').replace(/"/g, '&quot;');
+        const safeRegNo = String(lab.registrationNumber || '').replace(/"/g, '&quot;');
+        const safeAddress = String(lab.address || '').replace(/"/g, '&quot;');
+        const safeAcc = String(lab.accreditationStatus || '').replace(/"/g, '&quot;');
+
+        return `
+            <div class="col-12 col-xxl-6">
+                <div class="card card-clinical p-3 h-100 admin-lab-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <div>
+                            <h5 class="mb-0">${lab.labName}</h5>
+                            <small class="text-muted">${lab.labType} | Users: ${lab.userCount}</small>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadLabUsers('${lab.id}', '${safeLabName}')">Users</button>
+                            <button class="btn btn-sm btn-outline-success" onclick="loadLabDashboardSnapshot('${lab.id}', '${safeLabName}')">Dashboard</button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="editLabFromAdmin('${lab.id}', '${safeLabName}', '${safeLabType}', '${safeRegNo}', '${safeAddress}', '${safeAcc}')">Edit Lab</button>
+                        </div>
+                    </div>
+                    <div class="row g-2 small admin-kpi-grid">
+                        <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>LQI:</strong> ${perf.labQualityIndex ?? 'N/A'}</div></div>
+                        <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>QC Pass:</strong> ${perf.qcPassRate ?? 'N/A'}%</div></div>
+                        <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>Open NC:</strong> ${perf.openNcCount ?? 'N/A'}</div></div>
+                        <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>Overdue NC:</strong> ${perf.overdueNcCount ?? 'N/A'}</div></div>
+                        <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>Stars:</strong> ${perf.sliptaStarLevel ?? audit.starLevel ?? 'N/A'}</div></div>
+                        <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>Comp.:</strong> ${perf.competencyCompliance ?? 'N/A'}%</div></div>
+                    </div>
+                    <div id="labUsers-${lab.id}" class="mt-2"></div>
+                    <div id="labDashboard-${lab.id}" class="mt-2"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadClientFeedback() {
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_TECHNOLOGIST], 'Client Feedback')) return;
+    const contentArea = document.getElementById('contentArea');
+    if (!contentArea) return;
+
+    contentArea.innerHTML = `
+        <div class="row g-3 feedback-layout-grid">
+            <div class="col-lg-5">
+                <div class="card card-clinical p-3 h-100 module-card-tight">
+                    <h6 class="fw-bold mb-2">Feedback Submission</h6>
+                    <form id="feedbackForm" class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small">Client Type</label>
+                            <select id="fbClientType" class="form-select form-select-sm" required>
+                                <option>Patient</option><option>Clinician</option><option>Corporate Client</option><option>Internal Staff</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Department</label>
+                            <input id="fbDepartment" class="form-control form-control-sm" placeholder="e.g. Hematology" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Category</label>
+                            <select id="fbCategory" class="form-select form-select-sm" required>
+                                <option>Complaint</option><option>Suggestion</option><option>Compliment</option><option>Inquiry</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Satisfaction (1-5)</label>
+                            <input id="fbRating" type="number" min="1" max="5" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-12 form-check ms-1">
+                            <input id="fbAnonymous" type="checkbox" class="form-check-input">
+                            <label class="form-check-label small" for="fbAnonymous">Submit anonymously</label>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Contact (optional if not anonymous)</label>
+                            <input id="fbContact" class="form-control form-control-sm" placeholder="Phone/email">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Description</label>
+                            <textarea id="fbDescription" rows="3" class="form-control form-control-sm" required></textarea>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Assigned Officer</label>
+                            <input id="fbOfficer" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Due Date</label>
+                            <input id="fbDueDate" type="date" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-sm btn-primary w-100">Submit Feedback</button>
+                        </div>
+                    </form>
+                    <div id="fbStatus" class="alert alert-light mt-2 mb-0">Ready.</div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="card card-clinical p-3 module-card-tight">
+                    <h6 class="fw-bold mb-2">Satisfaction & Complaint Analytics</h6>
+                    <div id="fbAnalyticsSummary" class="small text-muted mb-2">Loading analytics...</div>
+                    <canvas id="fbTrendChart" height="120"></canvas>
+                </div>
+                <div class="card card-clinical p-3 mt-3 module-card-tight">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0">Monthly Feedback Report (Preview)</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadFeedbackReport()">Refresh Report</button>
+                    </div>
+                    <div id="fbReportPanel" class="small text-muted">Loading report...</div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card card-clinical p-3 module-card-tight">
+                    <h6 class="fw-bold mb-2">Workflow Tracker</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th><th>Date</th><th>Client</th><th>Dept</th><th>Category</th><th>Severity</th><th>Status</th><th>Officer</th><th>NC Link</th><th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fbWorkflowTable">
+                                <tr><td colspan="10" class="text-center text-muted">Loading feedback records...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('feedbackForm')?.addEventListener('submit', submitClientFeedback);
+    await Promise.all([loadFeedbackWorkflow(), loadFeedbackAnalytics(), loadFeedbackReport()]);
+}
+
+async function submitClientFeedback(e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('fbStatus');
+    statusEl.className = 'alert alert-info mt-2 mb-0';
+    statusEl.textContent = 'Submitting feedback...';
+
+    const payload = {
+        clientType: document.getElementById('fbClientType').value,
+        department: document.getElementById('fbDepartment').value.trim(),
+        category: document.getElementById('fbCategory').value,
+        description: document.getElementById('fbDescription').value.trim(),
+        satisfactionRating: Number(document.getElementById('fbRating').value),
+        isAnonymous: document.getElementById('fbAnonymous').checked,
+        contactInfo: document.getElementById('fbContact').value.trim(),
+        assignedOfficer: document.getElementById('fbOfficer').value.trim(),
+        dueDate: document.getElementById('fbDueDate').value || null
+    };
+
+    const res = await fetch(`${API_URL}/client-feedback`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        statusEl.className = 'alert alert-danger mt-2 mb-0';
+        statusEl.textContent = data.message || 'Failed to submit feedback.';
+        return;
+    }
+
+    statusEl.className = 'alert alert-success mt-2 mb-0';
+    statusEl.textContent = data.autoNc
+        ? `Feedback submitted. Auto-NC created (${data.autoNc.id}).`
+        : 'Feedback submitted successfully.';
+    document.getElementById('feedbackForm').reset();
+    await Promise.all([loadFeedbackWorkflow(), loadFeedbackAnalytics(), loadFeedbackReport()]);
+}
+
+async function loadFeedbackWorkflow() {
+    const table = document.getElementById('fbWorkflowTable');
+    if (!table) return;
+    const res = await fetch(`${API_URL}/client-feedback`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const list = await res.json().catch(() => []);
+    if (!res.ok) {
+        table.innerHTML = `<tr><td colspan="10" class="text-danger text-center">${list.message || 'Failed to load feedback records.'}</td></tr>`;
+        return;
+    }
+
+    if (!list.length) {
+        table.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No feedback records yet.</td></tr>';
+        return;
+    }
+
+    table.innerHTML = list.map((item) => {
+        const safeNotes = String(item.resolutionNotes || '').replace(/'/g, "\\'");
+        return `
+            <tr>
+                <td>${item.feedbackCode || item.id.slice(0, 8)}</td>
+                <td>${new Date(item.submittedAt).toLocaleDateString()}</td>
+                <td>${item.clientType}</td>
+                <td>${item.department}</td>
+                <td>${item.category}</td>
+                <td>${item.severity}</td>
+                <td>${item.status}</td>
+                <td>${item.assignedOfficer || '-'}</td>
+                <td>${item.linkedNcId ? `<code>${item.linkedNcId.slice(0, 8)}</code>` : '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="updateFeedbackWorkflow('${item.id}', '${item.status}', '${item.assignedOfficer || ''}', '${safeNotes}')">Update</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="linkFeedbackToNc('${item.id}')">Link NC</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function updateFeedbackWorkflow(id, currentStatus, currentOfficer, currentNotes) {
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'Feedback Workflow Update')) return;
+    ensureActionModals();
+    document.getElementById('fbUpdateId').value = id;
+    document.getElementById('fbUpdateStatus').value = currentStatus || 'New';
+    document.getElementById('fbUpdateOfficer').value = currentOfficer || '';
+    document.getElementById('fbUpdateNotes').value = currentNotes || '';
+    document.getElementById('fbUpdateDueDate').value = '';
+    new bootstrap.Modal(document.getElementById('feedbackUpdateModal')).show();
+}
+
+async function linkFeedbackToNc(id) {
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'Feedback NC Link')) return;
+    ensureActionModals();
+    document.getElementById('fbLinkId').value = id;
+    document.getElementById('fbLinkNcId').value = '';
+    new bootstrap.Modal(document.getElementById('feedbackLinkNcModal')).show();
+}
+
+async function loadFeedbackAnalytics() {
+    const summary = document.getElementById('fbAnalyticsSummary');
+    const canvas = document.getElementById('fbTrendChart');
+    if (!summary || !canvas) return;
+
+    const res = await fetch(`${API_URL}/client-feedback/analytics/summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        summary.className = 'small text-danger mb-2';
+        summary.textContent = data.message || 'Failed to load analytics.';
+        return;
+    }
+
+    summary.className = 'small text-muted mb-2';
+    summary.innerHTML = `
+        Total: <strong>${data.totalFeedback}</strong> |
+        Avg satisfaction: <strong>${data.avgSatisfaction}</strong> |
+        Most complained dept: <strong>${data.mostComplainedDepartment || 'N/A'}</strong> |
+        Resolved within target: <strong>${data.resolvedWithinTargetPercent}%</strong>
+    `;
+
+    const labels = Object.keys(data.trendByMonth || {});
+    const values = Object.values(data.trendByMonth || {});
+    if (window.feedbackTrendChart) window.feedbackTrendChart.destroy();
+    window.feedbackTrendChart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Feedback Volume by Month',
+                data: values,
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                fill: true,
+                tension: 0.2
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+async function loadFeedbackReport() {
+    const panel = document.getElementById('fbReportPanel');
+    if (!panel) return;
+    const res = await fetch(`${API_URL}/client-feedback/reports/monthly`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        panel.innerHTML = `<div class="text-danger">${data.message || 'Failed to load report.'}</div>`;
+        return;
+    }
+
+    const byDept = Object.entries(data.byDepartment || {}).map(([key, value]) => `${key}: ${value}`).join(' | ') || 'N/A';
+    const byStatus = Object.entries(data.byStatus || {}).map(([key, value]) => `${key}: ${value}`).join(' | ') || 'N/A';
+    const topIssues = Object.entries(data.topIssues || {}).sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([key, value]) => `${key} (${value})`).join(', ') || 'N/A';
+
+    panel.innerHTML = `
+        <div><strong>${data.reportTitle}</strong></div>
+        <div>Generated: ${new Date(data.generatedAt).toLocaleString()}</div>
+        <div>Total feedback: ${data.totalFeedback}</div>
+        <div>By department: ${byDept}</div>
+        <div>By status: ${byStatus}</div>
+        <div>Top issues: ${topIssues}</div>
+    `;
+}
+
+async function loadLabUsers(labId, labName) {
+    const mount = document.getElementById(`labUsers-${labId}`);
+    if (!mount) return;
+    mount.innerHTML = '<div class="small text-muted">Loading users...</div>';
+
+    const res = await fetch(`${API_URL}/admin/labs/${labId}/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const users = await res.json().catch(() => []);
+    if (!res.ok) {
+        mount.innerHTML = `<div class="alert alert-danger mb-0">${users.message || 'Failed to load users.'}</div>`;
+        return;
+    }
+
+    mount.innerHTML = `
+        <div class="small fw-semibold mb-1">${labName} - Users (${users.length})</div>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                    <tr><th>Name</th><th>Email</th><th>Role</th><th>Edit</th></tr>
+                </thead>
+                <tbody>
+                    ${users.map((user) => `
+                        <tr>
+                            <td>${user.fullName}</td>
+                            <td>${user.email}</td>
+                            <td>${user.role}</td>
+                            <td><button class="btn btn-sm btn-outline-secondary" onclick="editUserFromAdmin('${user.id}', '${String(user.fullName || '').replace(/'/g, "\\'")}', '${user.role}')">Edit</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+async function loadLabDashboardSnapshot(labId, labName) {
+    const mount = document.getElementById(`labDashboard-${labId}`);
+    if (!mount) return;
+    mount.innerHTML = '<div class="small text-muted">Loading dashboard snapshot...</div>';
+
+    const res = await fetch(`${API_URL}/admin/labs/${labId}/dashboard`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        mount.innerHTML = `<div class="alert alert-danger mb-0">${data.message || 'Failed to load snapshot.'}</div>`;
+        return;
+    }
+
+    const snap = data.dashboard || {};
+    const audit = data.latestAudit || {};
+    mount.innerHTML = `
+        <div class="alert alert-light border mb-0 small">
+            <strong>${labName} Dashboard Snapshot:</strong>
+            Period ${snap.period || 'N/A'} | LQI ${snap.labQualityIndex ?? 'N/A'} | QC Pass ${snap.qcPassRate ?? 'N/A'}%
+            | Open NC ${snap.openNcCount ?? 'N/A'} | Overdue ${snap.overdueNcCount ?? 'N/A'}
+            | Latest Audit ${audit.auditType || 'N/A'} (${audit.starLevel ?? 'N/A'} star)
+        </div>
+    `;
+}
+
+async function editLabFromAdmin(labId, labName, labType, regNo, address, accreditationStatus) {
+    ensureActionModals();
+    document.getElementById('adminEditLabId').value = labId;
+    document.getElementById('adminEditLabName').value = labName || '';
+    document.getElementById('adminEditLabType').value = labType || 'Public';
+    document.getElementById('adminEditLabReg').value = regNo || '';
+    document.getElementById('adminEditLabAddress').value = address || '';
+    document.getElementById('adminEditLabAcc').value = accreditationStatus || '';
+    new bootstrap.Modal(document.getElementById('adminEditLabModal')).show();
+}
+
+async function editUserFromAdmin(userId, fullName, role) {
+    ensureActionModals();
+    document.getElementById('adminEditUserId').value = userId;
+    document.getElementById('adminEditUserName').value = fullName || '';
+    document.getElementById('adminEditUserRole').value = role || 'Laboratory Technologist';
+    new bootstrap.Modal(document.getElementById('adminEditUserModal')).show();
+}
+
+function ensureActionModals() {
+    if (document.getElementById('feedbackUpdateModal')) return;
+
+    const modalShell = document.createElement('div');
+    modalShell.innerHTML = `
+        <div class="modal fade" id="feedbackUpdateModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Update Feedback Workflow</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="fbUpdateId">
+                        <label class="form-label small">Status</label>
+                        <select id="fbUpdateStatus" class="form-select form-select-sm mb-2">
+                            <option>New</option><option>Under Review</option><option>Investigation Ongoing</option><option>Action Implemented</option><option>Closed</option>
+                        </select>
+                        <label class="form-label small">Assigned Officer</label>
+                        <input id="fbUpdateOfficer" class="form-control form-control-sm mb-2">
+                        <label class="form-label small">Resolution Notes</label>
+                        <textarea id="fbUpdateNotes" rows="3" class="form-control form-control-sm mb-2"></textarea>
+                        <label class="form-label small">Due Date</label>
+                        <input type="date" id="fbUpdateDueDate" class="form-control form-control-sm">
+                        <div id="fbUpdateModalStatus" class="small text-muted mt-2"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="fbUpdateSubmitBtn" class="btn btn-sm btn-primary">Save</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="feedbackLinkNcModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Link Feedback to NC</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="fbLinkId">
+                        <label class="form-label small">NC ID</label>
+                        <input id="fbLinkNcId" class="form-control form-control-sm" placeholder="Paste NC ID">
+                        <div id="fbLinkModalStatus" class="small text-muted mt-2"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="fbLinkSubmitBtn" class="btn btn-sm btn-primary">Link</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="adminEditLabModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Edit Laboratory</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="adminEditLabId">
+                        <label class="form-label small">Lab Name</label><input id="adminEditLabName" class="form-control form-control-sm mb-2">
+                        <label class="form-label small">Lab Type</label>
+                        <select id="adminEditLabType" class="form-select form-select-sm mb-2"><option>Public</option><option>Private</option><option>Mid-level</option></select>
+                        <label class="form-label small">Registration Number</label><input id="adminEditLabReg" class="form-control form-control-sm mb-2">
+                        <label class="form-label small">Address</label><textarea id="adminEditLabAddress" rows="2" class="form-control form-control-sm mb-2"></textarea>
+                        <label class="form-label small">Accreditation Status</label><input id="adminEditLabAcc" class="form-control form-control-sm">
+                        <div id="adminEditLabStatus" class="small text-muted mt-2"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="adminEditLabSubmitBtn" class="btn btn-sm btn-primary">Save</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="adminEditUserModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Edit User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="adminEditUserId">
+                        <label class="form-label small">Full Name</label><input id="adminEditUserName" class="form-control form-control-sm mb-2">
+                        <label class="form-label small">Role</label>
+                        <select id="adminEditUserRole" class="form-select form-select-sm">
+                            <option>System Administrator</option><option>Laboratory Manager</option><option>Quality Officer</option><option>Laboratory Technologist</option><option>Auditor</option>
+                        </select>
+                        <div id="adminEditUserStatus" class="small text-muted mt-2"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="adminEditUserSubmitBtn" class="btn btn-sm btn-primary">Save</button></div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalShell);
+
+    document.getElementById('fbUpdateSubmitBtn')?.addEventListener('click', async () => {
+        const id = document.getElementById('fbUpdateId').value;
+        const statusEl = document.getElementById('fbUpdateModalStatus');
+        statusEl.textContent = 'Saving...';
+        const res = await fetch(`${API_URL}/client-feedback/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                status: document.getElementById('fbUpdateStatus').value,
+                assignedOfficer: document.getElementById('fbUpdateOfficer').value.trim(),
+                resolutionNotes: document.getElementById('fbUpdateNotes').value.trim(),
+                dueDate: document.getElementById('fbUpdateDueDate').value || undefined
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            statusEl.textContent = data.message || 'Failed to update feedback.';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('feedbackUpdateModal'))?.hide();
+        await Promise.all([loadFeedbackWorkflow(), loadFeedbackAnalytics(), loadFeedbackReport()]);
+    });
+
+    document.getElementById('fbLinkSubmitBtn')?.addEventListener('click', async () => {
+        const id = document.getElementById('fbLinkId').value;
+        const ncId = document.getElementById('fbLinkNcId').value.trim();
+        const statusEl = document.getElementById('fbLinkModalStatus');
+        if (!ncId) {
+            statusEl.textContent = 'NC ID is required.';
+            return;
+        }
+        statusEl.textContent = 'Linking...';
+        const res = await fetch(`${API_URL}/client-feedback/${id}/link-nc`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ ncId })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            statusEl.textContent = data.message || 'Failed to link feedback to NC.';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('feedbackLinkNcModal'))?.hide();
+        await loadFeedbackWorkflow();
+    });
+
+    document.getElementById('adminEditLabSubmitBtn')?.addEventListener('click', async () => {
+        const labId = document.getElementById('adminEditLabId').value;
+        const statusEl = document.getElementById('adminEditLabStatus');
+        statusEl.textContent = 'Saving...';
+        const res = await fetch(`${API_URL}/admin/labs/${labId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                labName: document.getElementById('adminEditLabName').value.trim(),
+                labType: document.getElementById('adminEditLabType').value,
+                registrationNumber: document.getElementById('adminEditLabReg').value.trim(),
+                address: document.getElementById('adminEditLabAddress').value.trim(),
+                accreditationStatus: document.getElementById('adminEditLabAcc').value.trim()
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            statusEl.textContent = data.message || 'Failed to update lab.';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('adminEditLabModal'))?.hide();
+        await loadAdminPortal();
+    });
+
+    document.getElementById('adminEditUserSubmitBtn')?.addEventListener('click', async () => {
+        const userId = document.getElementById('adminEditUserId').value;
+        const statusEl = document.getElementById('adminEditUserStatus');
+        statusEl.textContent = 'Saving...';
+        const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                fullName: document.getElementById('adminEditUserName').value.trim(),
+                role: document.getElementById('adminEditUserRole').value
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            statusEl.textContent = data.message || 'Failed to update user.';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('adminEditUserModal'))?.hide();
+        await loadAdminPortal();
+    });
+}
+
 async function loadDeptView(deptName) {
     const contentArea = document.getElementById('contentArea');
     contentArea.innerHTML = `
@@ -1546,7 +2682,7 @@ async function loadDeptView(deptName) {
                 <td class="align-middle">${doc.title}</td>
                 <td class="text-end">
                     <div class="btn-group shadow-sm">
-                        <a href="http://localhost:5000/${doc.filePath}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <a href="${buildControlledSopUrl(doc.filePath, doc.title, deptName)}" target="_blank" class="btn btn-sm btn-outline-primary">
                             👁️ View
                         </a>
                         <button onclick="printSOP('http://localhost:5000/${doc.filePath}')" class="btn btn-sm btn-outline-secondary">
@@ -1556,7 +2692,7 @@ async function loadDeptView(deptName) {
                 </td>
             </tr>
         `).join('') || '<tr><td colspan="2" class="text-center text-muted">No documents found for this department.</td></tr>';
-    } catch (err) { console.error("SOP Fetch Error:", err); }
+    } catch (err) { }
 
     // 2. Fetch & Filter Equipment
     try {
@@ -1590,7 +2726,7 @@ async function loadDeptView(deptName) {
                 </button>
             `;
         }
-    } catch (err) { console.error("Equip Fetch Error:", err); }
+    } catch (err) { }
 }
 
 function loadAbout() {
@@ -1662,7 +2798,7 @@ document.addEventListener('submit', async (e) => {
                 alert(error.message);
             }
         } catch (err) {
-            console.error("Error saving equipment:", err);
+            alert("Error saving equipment.");
         }
     }
 });
@@ -1745,7 +2881,7 @@ document.addEventListener('submit', async (e) => {
                 alert("Error: " + err.message);
             }
         } catch (error) {
-            console.error("Maintenance save failed:", error);
+            alert("Maintenance save failed.");
         }
     }
 });
@@ -1758,10 +2894,354 @@ function printSOP(pdfUrl) {
     }, true);
 }
 
+function buildControlledSopUrl(filePath, title, department) {
+    const safePath = String(filePath || '').replace(/\\/g, '/');
+    const fileUrl = `http://localhost:5000/${safePath}`;
+    const params = new URLSearchParams({
+        file: fileUrl,
+        title: title || 'SOP',
+        department: department || ''
+    });
+    return `controlled-viewer.html?${params.toString()}`;
+}
+
+// Enhanced profile menu with photo upload, notification preferences, and last-login.
+function formatLastLogin(value) {
+    if (!value) return 'No login history';
+    return new Date(value).toLocaleString();
+}
+
+function applyProfileState(user) {
+    if (!user) return;
+    if (user.fullName) localStorage.setItem('fullName', user.fullName);
+    if (user.labName) localStorage.setItem('labName', user.labName);
+    if (user.profilePhotoUrl) localStorage.setItem('profilePhotoUrl', user.profilePhotoUrl);
+    const effectiveLastLogin = user.previousLoginAt || user.lastLoginAt || '';
+    if (effectiveLastLogin) localStorage.setItem('lastLoginAt', effectiveLastLogin);
+
+    const avatarImg = document.getElementById('profileAvatarImg');
+    const avatarFallback = document.getElementById('profileAvatarFallback');
+    const photo = localStorage.getItem('profilePhotoUrl') || '';
+    if (avatarImg && avatarFallback) {
+        if (photo) {
+            avatarImg.src = photo;
+            avatarImg.classList.remove('d-none');
+            avatarFallback.classList.add('d-none');
+        } else {
+            avatarImg.classList.add('d-none');
+            avatarFallback.classList.remove('d-none');
+            avatarFallback.textContent = (localStorage.getItem('fullName') || 'U').charAt(0).toUpperCase();
+        }
+    }
+
+    const labelName = document.getElementById('profileMenuName');
+    if (labelName) labelName.textContent = localStorage.getItem('fullName') || 'User';
+    const ddName = document.getElementById('profileHeaderName');
+    if (ddName) ddName.textContent = localStorage.getItem('fullName') || 'User';
+    const ddLast = document.getElementById('profileHeaderLastLogin');
+    if (ddLast) ddLast.textContent = formatLastLogin(localStorage.getItem('lastLoginAt'));
+    setLabNameHeading();
+}
+
+function ensureProfileSettingsModal() {
+    if (document.getElementById('profileSettingsModal')) return;
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'profileSettingsModal';
+    modal.tabIndex = -1;
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Profile & Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3 text-center">
+                            <img id="profilePhotoPreview" src="https://via.placeholder.com/90?text=User" class="rounded-circle border" style="width:90px;height:90px;object-fit:cover;">
+                            <input id="profilePhotoInput" type="file" accept="image/*" class="form-control form-control-sm mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2 w-100" id="uploadProfilePhotoBtn">Upload Photo</button>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="row g-2">
+                                <div class="col-md-6"><label class="form-label small">Full Name</label><input id="profileFullName" class="form-control form-control-sm"></div>
+                                <div class="col-md-6"><label class="form-label small">Email</label><input id="profileEmail" class="form-control form-control-sm" readonly></div>
+                                <div class="col-md-6"><label class="form-label small">Role</label><input id="profileRole" class="form-control form-control-sm" readonly></div>
+                                <div class="col-md-6"><label class="form-label small">Lab Name</label><input id="profileLabNameView" class="form-control form-control-sm" readonly></div>
+                                <div class="col-md-12"><label class="form-label small">Last Login</label><input id="profileLastLogin" class="form-control form-control-sm" readonly></div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-2">Notification Preferences</h6>
+                    <div class="row g-2 small">
+                        <div class="col-md-6 form-check"><input class="form-check-input" type="checkbox" id="prefNotifyQcAlerts"><label class="form-check-label" for="prefNotifyQcAlerts">QC alerts</label></div>
+                        <div class="col-md-6 form-check"><input class="form-check-input" type="checkbox" id="prefNotifyNcAlerts"><label class="form-check-label" for="prefNotifyNcAlerts">NC/CAPA alerts</label></div>
+                        <div class="col-md-6 form-check"><input class="form-check-input" type="checkbox" id="prefNotifyMaintenanceAlerts"><label class="form-check-label" for="prefNotifyMaintenanceAlerts">Maintenance alerts</label></div>
+                        <div class="col-md-6 form-check"><input class="form-check-input" type="checkbox" id="prefNotifyBenchmarkUpdates"><label class="form-check-label" for="prefNotifyBenchmarkUpdates">Benchmark updates</label></div>
+                        <div class="col-md-6 form-check"><input class="form-check-input" type="checkbox" id="prefNotifyEmailDigest"><label class="form-check-label" for="prefNotifyEmailDigest">Email digest</label></div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-2">Security</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6"><label class="form-label small">Current Password</label><input id="profileCurrentPassword" type="password" class="form-control form-control-sm"></div>
+                        <div class="col-md-6"><label class="form-label small">New Password</label><input id="profileNewPassword" type="password" class="form-control form-control-sm"></div>
+                    </div>
+                    <div id="adminLabSettingsSection" class="mt-4 d-none">
+                        <hr>
+                        <h6 class="mb-2">Admin Lab Settings</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6"><label class="form-label small">Lab Name</label><input id="labSettingName" class="form-control form-control-sm"></div>
+                            <div class="col-md-6"><label class="form-label small">Lab Type</label><select id="labSettingType" class="form-select form-select-sm"><option value="Public">Public</option><option value="Private">Private</option><option value="Mid-level">Mid-level</option></select></div>
+                            <div class="col-md-6"><label class="form-label small">Registration Number</label><input id="labSettingRegNo" class="form-control form-control-sm"></div>
+                            <div class="col-md-6"><label class="form-label small">Accreditation Status</label><input id="labSettingAccreditation" class="form-control form-control-sm"></div>
+                            <div class="col-12"><label class="form-label small">Address</label><textarea id="labSettingAddress" class="form-control form-control-sm" rows="2"></textarea></div>
+                        </div>
+                    </div>
+                    <div id="profileSettingsStatus" class="alert alert-light mt-3 mb-0">Ready.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveProfileSettingsBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function loadProfileSettings() {
+    const status = document.getElementById('profileSettingsStatus');
+    status.className = 'alert alert-info mt-3 mb-0';
+    status.textContent = 'Loading profile settings...';
+    const res = await fetch(`${API_URL}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        status.className = 'alert alert-danger mt-3 mb-0';
+        status.textContent = data.message || 'Failed to load profile settings.';
+        return null;
+    }
+    const user = data.user || {};
+    const prefs = user.notificationPreferences || {};
+    document.getElementById('profileFullName').value = user.fullName || '';
+    document.getElementById('profileEmail').value = user.email || '';
+    document.getElementById('profileRole').value = user.role || '';
+    document.getElementById('profileLabNameView').value = user.labName || '';
+    document.getElementById('profileLastLogin').value = formatLastLogin(user.lastLoginAt);
+    document.getElementById('profilePhotoPreview').src = user.profilePhotoUrl || localStorage.getItem('profilePhotoUrl') || 'https://via.placeholder.com/90?text=User';
+    document.getElementById('prefNotifyQcAlerts').checked = prefs.notifyQcAlerts ?? true;
+    document.getElementById('prefNotifyNcAlerts').checked = prefs.notifyNcAlerts ?? true;
+    document.getElementById('prefNotifyMaintenanceAlerts').checked = prefs.notifyMaintenanceAlerts ?? true;
+    document.getElementById('prefNotifyBenchmarkUpdates').checked = prefs.notifyBenchmarkUpdates ?? true;
+    document.getElementById('prefNotifyEmailDigest').checked = prefs.notifyEmailDigest ?? false;
+    const isAdmin = loggedInRoleKey === ROLE_KEYS.ADMIN;
+    document.getElementById('adminLabSettingsSection').classList.toggle('d-none', !isAdmin);
+    if (isAdmin) {
+        const lab = user.lab || {};
+        document.getElementById('labSettingName').value = lab.labName || '';
+        document.getElementById('labSettingType').value = lab.labType || 'Private';
+        document.getElementById('labSettingRegNo').value = lab.registrationNumber || '';
+        document.getElementById('labSettingAccreditation').value = lab.accreditationStatus || '';
+        document.getElementById('labSettingAddress').value = lab.address || '';
+    }
+    applyProfileState(user);
+    status.className = 'alert alert-light mt-3 mb-0';
+    status.textContent = 'Loaded.';
+    return data;
+}
+
+async function uploadProfilePhoto() {
+    const status = document.getElementById('profileSettingsStatus');
+    const file = document.getElementById('profilePhotoInput')?.files?.[0];
+    if (!file) {
+        status.className = 'alert alert-warning mt-3 mb-0';
+        status.textContent = 'Choose an image first.';
+        return;
+    }
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch(`${API_URL}/auth/me/photo`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        status.className = 'alert alert-danger mt-3 mb-0';
+        status.textContent = data.message || 'Failed to upload photo.';
+        return;
+    }
+    document.getElementById('profilePhotoPreview').src = data.user?.profilePhotoUrl || document.getElementById('profilePhotoPreview').src;
+    applyProfileState(data.user || {});
+    status.className = 'alert alert-success mt-3 mb-0';
+    status.textContent = 'Profile photo updated.';
+}
+
+async function saveProfileSettings() {
+    const status = document.getElementById('profileSettingsStatus');
+    status.className = 'alert alert-info mt-3 mb-0';
+    status.textContent = 'Saving changes...';
+    const payload = {
+        fullName: document.getElementById('profileFullName').value.trim(),
+        notificationPreferences: {
+            notifyQcAlerts: document.getElementById('prefNotifyQcAlerts').checked,
+            notifyNcAlerts: document.getElementById('prefNotifyNcAlerts').checked,
+            notifyMaintenanceAlerts: document.getElementById('prefNotifyMaintenanceAlerts').checked,
+            notifyBenchmarkUpdates: document.getElementById('prefNotifyBenchmarkUpdates').checked,
+            notifyEmailDigest: document.getElementById('prefNotifyEmailDigest').checked
+        }
+    };
+    const currentPassword = document.getElementById('profileCurrentPassword').value;
+    const newPassword = document.getElementById('profileNewPassword').value;
+    if (newPassword) { payload.currentPassword = currentPassword; payload.newPassword = newPassword; }
+
+    const profileRes = await fetch(`${API_URL}/auth/me`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
+    const profileData = await profileRes.json().catch(() => ({}));
+    if (!profileRes.ok) {
+        status.className = 'alert alert-danger mt-3 mb-0';
+        status.textContent = profileData.message || 'Failed to save profile.';
+        return;
+    }
+    applyProfileState(profileData.user || {});
+
+    if (loggedInRoleKey === ROLE_KEYS.ADMIN) {
+        const labPayload = {
+            labName: document.getElementById('labSettingName').value.trim(),
+            labType: document.getElementById('labSettingType').value,
+            registrationNumber: document.getElementById('labSettingRegNo').value.trim(),
+            accreditationStatus: document.getElementById('labSettingAccreditation').value.trim(),
+            address: document.getElementById('labSettingAddress').value.trim()
+        };
+        const labRes = await fetch(`${API_URL}/auth/lab-settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(labPayload) });
+        const labData = await labRes.json().catch(() => ({}));
+        if (!labRes.ok) {
+            status.className = 'alert alert-warning mt-3 mb-0';
+            status.textContent = `Profile saved, but lab settings failed: ${labData.message || 'Unknown error'}`;
+            return;
+        }
+        if (labData.lab?.labName) localStorage.setItem('labName', labData.lab.labName);
+        setLabNameHeading();
+    }
+
+    document.getElementById('profileCurrentPassword').value = '';
+    document.getElementById('profileNewPassword').value = '';
+    status.className = 'alert alert-success mt-3 mb-0';
+    status.textContent = 'Settings saved successfully.';
+}
+
+async function promoteSelfAdmin() {
+    const status = document.getElementById('profileSettingsStatus');
+    if (status) {
+        status.className = 'alert alert-info mt-3 mb-0';
+        status.textContent = 'Requesting System Administrator access...';
+    }
+
+    const res = await fetch(`${API_URL}/auth/promote-self-admin`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        if (status) {
+            status.className = 'alert alert-danger mt-3 mb-0';
+            status.textContent = data.message || 'Promotion failed.';
+        } else {
+            alert(data.message || 'Promotion failed.');
+        }
+        return;
+    }
+
+    if (data.user?.role) localStorage.setItem('userRole', data.user.role);
+    if (data.user?.roleKey) localStorage.setItem('roleKey', data.user.roleKey);
+    applyProfileState(data.user || {});
+
+    if (status) {
+        status.className = 'alert alert-success mt-3 mb-0';
+        status.textContent = 'You are now System Administrator. Reloading...';
+    }
+
+    setTimeout(() => window.location.reload(), 700);
+}
+
+async function initProfileMenu() {
+    if (!token || window.location.href.includes('index.html')) return;
+    if (document.getElementById('profileDropdownWrapper')) return;
+    if (typeof bootstrap === 'undefined') return;
+    ensureProfileSettingsModal();
+    const wrapper = document.createElement('div');
+    wrapper.id = 'profileDropdownWrapper';
+    wrapper.className = 'dropdown';
+    wrapper.innerHTML = `
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="rounded-circle d-inline-flex align-items-center justify-content-center overflow-hidden text-white" style="width:30px;height:30px;background:#2c3e50;font-size:0.75rem;">
+                <img id="profileAvatarImg" src="" alt="Profile" class="w-100 h-100 d-none" style="object-fit:cover;">
+                <span id="profileAvatarFallback">${(localStorage.getItem('fullName') || 'U').trim().charAt(0).toUpperCase()}</span>
+            </span>
+            <span class="small" id="profileMenuName">${localStorage.getItem('fullName') || 'User'}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:260px;">
+            <li class="px-3 pt-2">
+                <div class="fw-semibold" id="profileHeaderName">${localStorage.getItem('fullName') || 'User'}</div>
+                <div class="small text-muted">${ROLE_LABEL_BY_KEY[loggedInRoleKey] || currentRoleLabel || 'User'}</div>
+                <div class="small text-muted">Last login: <span id="profileHeaderLastLogin">${formatLastLogin(localStorage.getItem('lastLoginAt'))}</span></div>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item" type="button" id="openProfileSettingsBtn">Settings</button></li>
+            <li><button class="dropdown-item d-none" type="button" id="promoteSelfAdminBtn">Become System Administrator</button></li>
+            <li><button class="dropdown-item text-danger" type="button" id="profileLogoutBtn">Logout</button></li>
+        </ul>
+    `;
+    const welcomeBtn = document.getElementById('userWelcomeBtn');
+    if (welcomeBtn) welcomeBtn.style.display = 'none';
+    let topbarHost = document.querySelector('.dashboard-topbar-actions');
+    if (!topbarHost) {
+        const headerRow = document.querySelector('.main-content-area > .d-flex.justify-content-between.align-items-center.mb-4');
+        if (headerRow) {
+            topbarHost = document.createElement('div');
+            topbarHost.className = 'dashboard-topbar-actions';
+            headerRow.appendChild(topbarHost);
+        }
+    }
+    if (topbarHost) {
+        topbarHost.appendChild(wrapper);
+    } else {
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '0.9rem';
+        wrapper.style.right = '1rem';
+        wrapper.style.zIndex = '1080';
+        document.body.appendChild(wrapper);
+    }
+    document.getElementById('openProfileSettingsBtn')?.addEventListener('click', async () => {
+        await loadProfileSettings();
+        new bootstrap.Modal(document.getElementById('profileSettingsModal')).show();
+    });
+    document.getElementById('promoteSelfAdminBtn')?.addEventListener('click', async () => {
+        await loadProfileSettings();
+        await promoteSelfAdmin();
+    });
+    document.getElementById('uploadProfilePhotoBtn')?.addEventListener('click', uploadProfilePhoto);
+    document.getElementById('saveProfileSettingsBtn')?.addEventListener('click', saveProfileSettings);
+    document.getElementById('profileLogoutBtn')?.addEventListener('click', logout);
+
+    try {
+        const res = await fetch(`${API_URL}/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.user) {
+            applyProfileState(data.user);
+            const promoteBtn = document.getElementById('promoteSelfAdminBtn');
+            const email = String(data.user.email || '').toLowerCase();
+            const target = 'maureenrono98@gmail.com';
+            if (promoteBtn && loggedInRoleKey !== ROLE_KEYS.ADMIN && email === target) {
+                promoteBtn.classList.remove('d-none');
+            }
+        }
+    } catch (error) {
+        // ignore
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     applyRoleNavigation();
     setLabNameHeading();
     initRolePreviewControl();
+    initProfileMenu();
 
     const userRole = localStorage.getItem('userRole');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -1769,8 +3249,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if the button exists on the current page and if the user is NOT a QA_MANAGER
     if (uploadBtn && ![ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) {
         uploadBtn.style.display = 'none';
-        console.log("Access Control: Upload button hidden for role:", userRole);
     }
+
+    runGlobalAlertsEngine();
 });
 
 /**

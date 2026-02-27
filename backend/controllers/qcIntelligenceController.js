@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { QcRun, QcRuleViolation } = require('../models');
+const { QcRun, QcRuleViolation, Equipment, Staff, Competency, NonConformance, Notification } = require('../models');
 const { validateQcRun } = require('../validators/qcValidator');
 const eventBus = require('../services/eventBus');
 
@@ -31,6 +31,72 @@ function evaluateWestgard(values, mean, sd) {
     return { status, alerts };
 }
 
+function buildQcGateReasons({ equipment, competency, now, competencyTestCode }) {
+    const gateReasons = [];
+    if (!equipment) {
+        gateReasons.push('Equipment record not found');
+        return gateReasons;
+    }
+
+    if (equipment.status !== 'Operational') {
+        gateReasons.push(`Equipment status is ${equipment.status}`);
+    }
+    if (equipment.nextServiceDate && new Date(equipment.nextServiceDate).getTime() < now.getTime()) {
+        gateReasons.push('Equipment service is overdue');
+    }
+
+    if (!competency) {
+        gateReasons.push(`No competency record for method "${competencyTestCode}"`);
+    } else {
+        if (competency.status !== 'Competent') {
+            gateReasons.push(`Staff competency status is ${competency.status}`);
+        }
+        if (new Date(competency.expiresAt).getTime() < now.getTime()) {
+            gateReasons.push(`Staff competency expired on ${new Date(competency.expiresAt).toLocaleDateString()}`);
+        }
+    }
+
+    return gateReasons;
+}
+
+async function createQcGateBlockRecords(req, equipment, gateReasons) {
+    const reasonText = gateReasons.join('; ');
+    const description = `QC run blocked by quality gate for equipment "${equipment?.name || 'Unknown'}": ${reasonText}`;
+
+    await NonConformance.create({
+        labId: req.user.labId,
+        severity: 'High',
+        status: 'Open',
+        description,
+        assignedTo: req.user.fullName || null
+    });
+
+    await Notification.create({
+        labId: req.user.labId,
+        type: 'Alert',
+        message: `QC Gate Block: ${reasonText}`
+    });
+}
+
+exports.getQcGateOptions = async (req, res) => {
+    try {
+        const [equipment, staff] = await Promise.all([
+            Equipment.findAll({
+                where: { labId: req.user.labId },
+                order: [['department', 'ASC'], ['name', 'ASC']]
+            }),
+            Staff.findAll({
+                where: { labId: req.user.labId, isActive: true },
+                order: [['fullName', 'ASC']]
+            })
+        ]);
+
+        res.json({ equipment, staff });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 exports.createQcRun = async (req, res) => {
     try {
         const validationError = validateQcRun(req.body);
@@ -40,6 +106,44 @@ exports.createQcRun = async (req, res) => {
         const mean = Number(req.body.mean);
         const sd = Number(req.body.sd);
         const zScore = (value - mean) / sd;
+
+        const [equipment, staff] = await Promise.all([
+            Equipment.findOne({
+                where: { id: req.body.equipmentId, labId: req.user.labId }
+            }),
+            Staff.findOne({
+                where: { id: req.body.staffId, labId: req.user.labId, isActive: true }
+            })
+        ]);
+
+        if (!equipment) {
+            return res.status(404).json({ message: 'Selected equipment not found for this lab.' });
+        }
+        if (!staff) {
+            return res.status(404).json({ message: 'Selected staff member not found or inactive.' });
+        }
+
+        const now = new Date();
+
+        const competencyTestCode = req.body.testCode || req.body.analyte;
+        const competency = await Competency.findOne({
+            where: {
+                staffId: staff.id,
+                testCode: competencyTestCode
+            },
+            order: [['expiresAt', 'DESC']]
+        });
+
+        const gateReasons = buildQcGateReasons({ equipment, competency, now, competencyTestCode });
+
+        if (gateReasons.length > 0) {
+            await createQcGateBlockRecords(req, equipment, gateReasons);
+            return res.status(409).json({
+                message: 'QC run blocked by quality gate.',
+                code: 'QC_GATE_BLOCKED',
+                gateReasons
+            });
+        }
 
         const recent = await QcRun.findAll({
             where: { labId: req.user.labId, analyte: req.body.analyte },
@@ -52,7 +156,7 @@ exports.createQcRun = async (req, res) => {
         const run = await QcRun.create({
             labId: req.user.labId,
             departmentId: req.body.departmentId || null,
-            equipmentId: req.body.equipmentId || null,
+            equipmentId: req.body.equipmentId,
             analyte: req.body.analyte,
             controlLevel: req.body.controlLevel,
             runTime: req.body.runTime || new Date(),
@@ -134,4 +238,9 @@ exports.getQcTrends = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+};
+
+exports.__testables = {
+    evaluateWestgard,
+    buildQcGateReasons
 };
