@@ -28,6 +28,7 @@ const clientFeedbackRoutes = require('./routes/clientFeedbackRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const { initWorkflowListeners } = require('./services/workflowListener');
 const { logErrorEvent } = require('./services/loggingService');
+const { prepareUserRolesForSync, normalizeUserRoles } = require('./services/roleNormalizationService');
 const { requestAuditTrail } = require('./middleware/requestAuditTrailMiddleware');
 const { enforceMaintenanceMode } = require('./middleware/maintenanceModeMiddleware');
 
@@ -121,8 +122,10 @@ const syncOptions = process.env.DB_SYNC_ALTER === 'true'
     : { force: false };
 
 // This syncs your models to the database (creates/updates tables)
-sequelize.sync(syncOptions)
-    .then(() => {
+prepareUserRolesForSync()
+    .then(() => sequelize.sync(syncOptions))
+    .then(async () => {
+        await normalizeUserRoles();
         initWorkflowListeners();
         console.log('MySQL Database connected & Models synced.');
         app.listen(PORT, () => {

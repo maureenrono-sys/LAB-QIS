@@ -1,4 +1,5 @@
-const { Document } = require('../models');
+const { Op } = require('sequelize');
+const { Document, Notification, User } = require('../models');
 
 // @desc    Upload a new quality document/SOP
 // @route   POST /api/docs
@@ -19,6 +20,34 @@ exports.uploadDocument = async (req, res) => {
             filePath: req.file.path, // Path to the file in the 'uploads' folder
             labId: req.user.labId    // From the auth token
         });
+
+        const uploaderName = req.user.fullName || 'A team member';
+        const targetRoleLabels = ['Laboratory Manager', 'Quality Assurance Manager'];
+        const verifiers = await User.findAll({
+            where: {
+                labId: req.user.labId,
+                role: { [Op.in]: targetRoleLabels }
+            },
+            attributes: ['role'],
+            raw: true
+        });
+        const existingRoles = Array.from(new Set(verifiers.map((user) => user.role)));
+
+        const notifications = existingRoles.map((roleLabel) => Notification.create({
+            labId: req.user.labId,
+            type: 'Update',
+            message: `${uploaderName} uploaded "${title}" (${department || 'Quality'}). ${roleLabel} verification is required.`
+        }));
+
+        if (!notifications.length) {
+            notifications.push(Notification.create({
+                labId: req.user.labId,
+                type: 'Update',
+                message: `${uploaderName} uploaded "${title}" (${department || 'Quality'}). Verification is required.`
+            }));
+        }
+
+        await Promise.all(notifications);
 
         res.status(201).json(doc);
     } catch (error) {

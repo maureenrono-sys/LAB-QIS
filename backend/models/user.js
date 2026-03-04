@@ -24,11 +24,10 @@ const User = sequelize.define('User', {
     },
     role: {
         type: DataTypes.ENUM(
-            'Laboratory Manager', 
-            'Quality Officer', 
-            'Laboratory Technologist', 
-            'Auditor', 
-            'System Administrator'
+            'Administrator',
+            'Laboratory Manager',
+            'Quality Assurance Manager',
+            'Laboratory Scientist'
         ),
         allowNull: false
     }

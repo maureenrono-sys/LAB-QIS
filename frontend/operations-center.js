@@ -3,10 +3,16 @@ const opsToken = localStorage.getItem('token');
 
 function resolveRoleKey() {
     const map = {
+        Administrator: 'ADMIN',
         'System Administrator': 'ADMIN',
+        Admin: 'ADMIN',
         'Laboratory Manager': 'LAB_MANAGER',
+        'Quality Assurance Manager': 'QUALITY_ASSURANCE_MANAGER',
+        'Quality Assurance Officer': 'QUALITY_ASSURANCE_MANAGER',
         'Quality Officer': 'QUALITY_ASSURANCE_MANAGER',
-        'Laboratory Technologist': 'LAB_TECHNOLOGIST'
+        'Laboratory Scientist': 'LAB_SCIENTIST',
+        'Laboratory Technologist': 'LAB_SCIENTIST',
+        'Lab Technologist': 'LAB_SCIENTIST'
     };
     return localStorage.getItem('roleKey') || map[localStorage.getItem('userRole') || ''] || '';
 }
@@ -32,6 +38,54 @@ function setOpsStatus(message, type = 'light') {
     if (!el) return;
     el.className = `alert alert-${type} mt-3 mb-0`;
     el.textContent = message;
+}
+
+function enableOpsSectionCollapsible() {
+    const cards = Array.from(document.querySelectorAll('.ops-section-card'));
+    cards.forEach((card, idx) => {
+        if (card.dataset.collapseReady === 'true') return;
+
+        const title = card.querySelector('.ops-section-title');
+        if (!title) return;
+
+        const collapseId = `opsSectionCollapse${idx + 1}`;
+        const body = document.createElement('div');
+        body.className = idx === 0 ? 'collapse show' : 'collapse';
+        body.id = collapseId;
+
+        let node = title.nextSibling;
+        while (node) {
+            const next = node.nextSibling;
+            body.appendChild(node);
+            node = next;
+        }
+
+        const header = document.createElement('div');
+        header.className = 'd-flex justify-content-between align-items-center mb-2 ops-collapsible-header';
+        title.classList.add('mb-0');
+        header.appendChild(title);
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'btn btn-sm btn-outline-primary ops-section-toggle';
+        toggleBtn.setAttribute('data-bs-toggle', 'collapse');
+        toggleBtn.setAttribute('data-bs-target', `#${collapseId}`);
+        toggleBtn.innerHTML = idx === 0
+            ? '<i class="bi bi-chevron-up me-1"></i>Hide'
+            : '<i class="bi bi-chevron-down me-1"></i>Show';
+
+        body.addEventListener('shown.bs.collapse', () => {
+            toggleBtn.innerHTML = '<i class="bi bi-chevron-up me-1"></i>Hide';
+        });
+        body.addEventListener('hidden.bs.collapse', () => {
+            toggleBtn.innerHTML = '<i class="bi bi-chevron-down me-1"></i>Show';
+        });
+
+        header.appendChild(toggleBtn);
+        card.prepend(header);
+        card.appendChild(body);
+        card.dataset.collapseReady = 'true';
+    });
 }
 
 function renderOpsTable(headers, rows) {
@@ -588,6 +642,12 @@ function bindReportButtons() {
 }
 
 function bindSystemLogButtons() {
+    const roleKey = resolveRoleKey();
+    const requestLogsBtn = document.getElementById('loadRequestLogsBtn');
+    if (requestLogsBtn && roleKey !== 'ADMIN') {
+        requestLogsBtn.classList.add('d-none');
+    }
+
     document.getElementById('loadLoginLogsBtn')?.addEventListener('click', async () => {
         try {
             const logs = await opsRequest('/system-logs/logins?limit=100', { headers: opsHeaders(false) });
@@ -629,6 +689,10 @@ function bindSystemLogButtons() {
     });
 
     document.getElementById('loadRequestLogsBtn')?.addEventListener('click', async () => {
+        if (roleKey !== 'ADMIN') {
+            setOpsStatus('Request audit logs are available to Administrator only.', 'warning');
+            return;
+        }
         try {
             const logs = await opsRequest('/system-logs/requests?limit=150', { headers: opsHeaders(false) });
             document.getElementById('requestLogsPanel').innerHTML = renderOpsTable(
@@ -707,19 +771,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const badge = document.getElementById('opsRoleBadge');
     if (badge) badge.textContent = roleKey || 'Unknown';
 
-    if (!['ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'].includes(roleKey)) {
-        document.getElementById('accessGuard').innerHTML = '<div class="alert alert-danger">Access denied: this page is available to Admin, Lab Manager, and QA Manager only.</div>';
+    if (!['ADMIN', 'LAB_MANAGER'].includes(roleKey)) {
+        document.getElementById('accessGuard').innerHTML = '<div class="alert alert-danger">Access denied: Operations Center is currently available to Administrator and Laboratory Manager only.</div>';
         return;
     }
 
     document.getElementById('opsContent').classList.remove('d-none');
+    enableOpsSectionCollapsible();
+    bindSystemLogButtons();
     bindSopForms();
     bindStaffForms();
     bindRiskForms();
     bindAutomationForms();
     bindReportButtons();
-    bindSystemLogButtons();
-    bindProductionControls();
+    if (roleKey === 'ADMIN') {
+        bindProductionControls();
+    } else {
+        document.querySelectorAll('#enableMaintenanceBtn, #disableMaintenanceBtn, #exportBackupBtn, #maintenanceReason').forEach((el) => {
+            if (el) el.disabled = true;
+        });
+    }
 
     refreshSopMetrics();
     refreshStaffMetrics();

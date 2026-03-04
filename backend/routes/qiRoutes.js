@@ -5,7 +5,7 @@ const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoleKeys } = require('../middleware/roleMiddleware');
 
 router.route('/')
-    .post(protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), addQI)
-    .get(protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), getMyLabQI);
+    .post(protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), addQI)
+    .get(protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getMyLabQI);
 
 module.exports = router;

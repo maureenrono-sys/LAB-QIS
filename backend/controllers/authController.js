@@ -1,19 +1,15 @@
 const { User, Laboratory, LoginLog, UserPreference } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getRoleKey, ROLE_KEYS, ROLE_LABELS_BY_KEY } = require('../constants/roles');
+const { getRoleKey, ROLE_KEYS } = require('../constants/roles');
 const { logLoginEvent, logErrorEvent } = require('../services/loggingService');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-function getSystemAdminEmail() {
-    return (process.env.SYSTEM_ADMIN_EMAIL || 'maureenrono98@gmail.com').toLowerCase();
-}
-
-function isSystemDeveloperEmail(email) {
-    return String(email || '').toLowerCase() === getSystemAdminEmail();
+function isAdministrator(user) {
+    return getRoleKey(user?.role) === ROLE_KEYS.ADMIN;
 }
 
 function normalizePhotoPath(rawPath) {
@@ -70,65 +66,9 @@ function makeUserPayload(user, preference, recentLogins) {
 }
 
 exports.registerLab = async (req, res) => {
-    try {
-        const { labName, labType, fullName, email, password, roleKey: requestedRoleKey } = req.body;
-
-        if (!labName || !fullName || !email || !password) {
-            return res.status(400).json({ message: 'labName, fullName, email, and password are required.' });
-        }
-
-        const allowedRoleKeys = [
-            ROLE_KEYS.LAB_MANAGER,
-            ROLE_KEYS.QUALITY_ASSURANCE_MANAGER,
-            ROLE_KEYS.LAB_TECHNOLOGIST
-        ];
-
-        let resolvedRoleKey = allowedRoleKeys.includes(requestedRoleKey) ? requestedRoleKey : ROLE_KEYS.LAB_MANAGER;
-        if (requestedRoleKey === ROLE_KEYS.ADMIN && isSystemDeveloperEmail(email)) {
-            resolvedRoleKey = ROLE_KEYS.ADMIN;
-        }
-        const roleLabel = ROLE_LABELS_BY_KEY[resolvedRoleKey];
-
-        if (!roleLabel) {
-            return res.status(400).json({ message: 'Invalid role selected for registration.' });
-        }
-
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            return res.status(400).json({ message: 'User with this email already exists.' });
-        }
-
-        const [lab] = await Laboratory.findOrCreate({
-            where: { labName },
-            defaults: { labName, labType: labType || 'Private' }
-        });
-
-        const user = await User.create({
-            fullName,
-            email,
-            password,
-            role: roleLabel,
-            labId: lab.id
-        });
-
-        const preference = await getOrCreateUserPreference(user.id);
-        const roleKey = getRoleKey(user.role);
-
-        res.status(201).json({
-            token: generateToken(user.id),
-            user: {
-                id: user.id,
-                fullName: user.fullName,
-                role: user.role,
-                roleKey,
-                labName: lab.labName,
-                profilePhotoPath: normalizePhotoPath(preference.profilePhotoPath),
-                profilePhotoUrl: buildPhotoUrl(preference.profilePhotoPath)
-            }
-        });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(403).json({
+        message: 'Self sign-up is disabled. Contact the Administrator to create your account.'
+    });
 };
 
 exports.login = async (req, res) => {
@@ -261,8 +201,8 @@ exports.updateMe = async (req, res) => {
 
 exports.updateLabSettings = async (req, res) => {
     try {
-        if (req.user.role !== ROLE_LABELS_BY_KEY[ROLE_KEYS.ADMIN]) {
-            return res.status(403).json({ message: 'Only System Administrator can update lab settings.' });
+        if (!isAdministrator(req.user)) {
+            return res.status(403).json({ message: 'Only the Administrator can update lab settings.' });
         }
 
         const allowed = ['labName', 'labType', 'address', 'registrationNumber', 'accreditationStatus'];
@@ -304,25 +244,7 @@ exports.uploadProfilePhoto = async (req, res) => {
 };
 
 exports.promoteSelfAdmin = async (req, res) => {
-    try {
-        const allowedEmail = getSystemAdminEmail();
-        const user = await User.findByPk(req.user.id, { include: Laboratory });
-        if (!user) return res.status(404).json({ message: 'User not found.' });
-
-        if (String(user.email || '').toLowerCase() !== allowedEmail) {
-            return res.status(403).json({ message: 'This account is not authorized for self-promotion.' });
-        }
-
-        user.role = ROLE_LABELS_BY_KEY[ROLE_KEYS.ADMIN];
-        await user.save();
-
-        const preference = await getOrCreateUserPreference(user.id);
-        const recentLogins = await getRecentLogins(user.id);
-        res.json({
-            message: 'Role updated to System Administrator.',
-            user: makeUserPayload(user, preference, recentLogins)
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.status(410).json({
+        message: 'Self-promotion is disabled. The Administrator role is reserved for the configured admin account.'
+    });
 };

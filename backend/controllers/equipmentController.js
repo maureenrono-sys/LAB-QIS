@@ -1,10 +1,38 @@
-const { Equipment, Notification, Maintenance } = require('../models');
+const { Equipment, Notification, Maintenance, User } = require('../models');
 const { Op } = require('sequelize');
 
 // ADD NEW EQUIPMENT
 exports.addEquipment = async (req, res) => {
     try {
         const item = await Equipment.create({ ...req.body, labId: req.user.labId });
+        const uploaderName = req.user.fullName || 'A team member';
+        const targetRoleLabels = ['Laboratory Manager', 'Quality Assurance Manager'];
+
+        const verifiers = await User.findAll({
+            where: {
+                labId: req.user.labId,
+                role: { [Op.in]: targetRoleLabels }
+            },
+            attributes: ['role'],
+            raw: true
+        });
+        const existingRoles = Array.from(new Set(verifiers.map((user) => user.role)));
+
+        const notifications = existingRoles.map((roleLabel) => Notification.create({
+            labId: req.user.labId,
+            type: 'Update',
+            message: `${uploaderName} registered equipment "${item.name}" (${item.department || 'General'}). ${roleLabel} verification is required.`
+        }));
+
+        if (!notifications.length) {
+            notifications.push(Notification.create({
+                labId: req.user.labId,
+                type: 'Update',
+                message: `${uploaderName} registered equipment "${item.name}" (${item.department || 'General'}). Verification is required.`
+            }));
+        }
+
+        await Promise.all(notifications);
         res.status(201).json(item);
     } catch (error) { res.status(400).json({ message: error.message }); }
 };

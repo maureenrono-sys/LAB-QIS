@@ -302,12 +302,14 @@ body > .container-fluid.p-4 > * + * {
 .btn-primary {
     background-color: var(--electric-blue);
     border-color: var(--electric-blue);
+    color: #ffffff;
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
     background-color: var(--turquoise);
     border-color: var(--turquoise);
+    color: #ffffff;
 }
 
 .btn-warning {
@@ -379,73 +381,73 @@ body > .container-fluid.p-4 > * + * {
 .dept-hematology {
     background-image:
         linear-gradient(140deg, rgba(123, 44, 191, 0.5), rgba(142, 69, 133, 0.5)),
-        url('https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/hematology.jpg');
 }
 
 .dept-biochemistry {
     background-image:
         linear-gradient(140deg, rgba(20, 184, 166, 0.52), rgba(93, 63, 211, 0.48)),
-        url('https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/biochemistry.jpg');
 }
 
 .dept-microbiology {
     background-image:
         linear-gradient(140deg, rgba(255, 159, 28, 0.48), rgba(123, 44, 191, 0.48)),
-        url('https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/microbiology.jpg');
 }
 
 .dept-serology {
     background-image:
         linear-gradient(140deg, rgba(142, 69, 133, 0.5), rgba(20, 184, 166, 0.5)),
-        url('https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/serology.jpg');
 }
 
 .dept-blood-bank {
     background-image:
         linear-gradient(140deg, rgba(255, 127, 80, 0.5), rgba(123, 44, 191, 0.48)),
-        url('https://images.unsplash.com/photo-1615461066841-6116e61058f4?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/blood-bank.jpg');
 }
 
 .dept-molecular {
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.5), rgba(20, 184, 166, 0.46)),
-        url('https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/molecular.jpg');
 }
 
 .dept-histology {
     background-image:
         linear-gradient(140deg, rgba(255, 159, 28, 0.5), rgba(142, 69, 133, 0.48)),
-        url('https://images.unsplash.com/photo-1511174511562-5f97f4f4a95a?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/histology.jpg');
 }
 
 .dept-reception {
     background-image:
         linear-gradient(140deg, rgba(20, 184, 166, 0.52), rgba(123, 44, 191, 0.46)),
-        url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/reception.jpg');
 }
 
 .dept-phlebotomy {
     background-image:
         linear-gradient(140deg, rgba(255, 127, 80, 0.48), rgba(142, 69, 133, 0.5)),
-        url('https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/phlebotomy.jpg');
 }
 
 .dept-quality {
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.5), rgba(255, 159, 28, 0.48)),
-        url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/quality.jpg');
 }
 
 .dept-parasitology {
     background-image:
         linear-gradient(140deg, rgba(20, 184, 166, 0.5), rgba(142, 69, 133, 0.48)),
-        url('https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/parasitology.jpg');
 }
 
 .dept-tb-lab {
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.5), rgba(20, 184, 166, 0.48)),
-        url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80');
+        url('images/departments/tb-lab.jpg');
 }
 
 /* Document control */
@@ -502,7 +504,7 @@ body > .container-fluid.p-4 > * + * {
     height: 108px;
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.48), rgba(20, 184, 166, 0.36)),
-        url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/default-lab.jpg');
     background-size: cover;
     background-position: center;
 }
@@ -552,73 +554,73 @@ body > .container-fluid.p-4 > * + * {
 .cover-quality {
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.58), rgba(255, 159, 28, 0.44)),
-        url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/quality.jpg');
 }
 
 .cover-reception {
     background-image:
         linear-gradient(140deg, rgba(20, 184, 166, 0.56), rgba(123, 44, 191, 0.4)),
-        url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/reception.jpg');
 }
 
 .cover-phlebotomy {
     background-image:
         linear-gradient(140deg, rgba(255, 127, 80, 0.52), rgba(142, 69, 133, 0.44)),
-        url('https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/phlebotomy.jpg');
 }
 
 .cover-hematology {
     background-image:
         linear-gradient(140deg, rgba(123, 44, 191, 0.54), rgba(20, 184, 166, 0.42)),
-        url('https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/hematology.jpg');
 }
 
 .cover-biochemistry {
     background-image:
         linear-gradient(140deg, rgba(20, 184, 166, 0.54), rgba(93, 63, 211, 0.42)),
-        url('https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/biochemistry.jpg');
 }
 
 .cover-serology {
     background-image:
         linear-gradient(140deg, rgba(142, 69, 133, 0.54), rgba(20, 184, 166, 0.42)),
-        url('https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/serology.jpg');
 }
 
 .cover-microbiology {
     background-image:
         linear-gradient(140deg, rgba(255, 159, 28, 0.5), rgba(123, 44, 191, 0.42)),
-        url('https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/microbiology.jpg');
 }
 
 .cover-blood-bank {
     background-image:
         linear-gradient(140deg, rgba(255, 127, 80, 0.52), rgba(123, 44, 191, 0.42)),
-        url('https://images.unsplash.com/photo-1615461066841-6116e61058f4?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/blood-bank.jpg');
 }
 
 .cover-molecular {
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.54), rgba(20, 184, 166, 0.4)),
-        url('https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/molecular.jpg');
 }
 
 .cover-histology {
     background-image:
         linear-gradient(140deg, rgba(255, 159, 28, 0.5), rgba(142, 69, 133, 0.44)),
-        url('https://images.unsplash.com/photo-1511174511562-5f97f4f4a95a?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/histology.jpg');
 }
 
 .cover-parasitology {
     background-image:
         linear-gradient(140deg, rgba(20, 184, 166, 0.5), rgba(142, 69, 133, 0.42)),
-        url('https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/parasitology.jpg');
 }
 
 .cover-tb-lab {
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.52), rgba(20, 184, 166, 0.4)),
-        url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/tb-lab.jpg');
 }
 
 @media (max-width: 991.98px) {
@@ -831,6 +833,84 @@ body > .container-fluid.p-4 > * + * {
     border-color: var(--turquoise);
 }
 
+.btn-outline-secondary {
+    color: #334155;
+    border-color: #94a3b8;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus,
+.btn-outline-secondary:active {
+    color: #ffffff;
+    background-color: #475569;
+    border-color: #475569;
+}
+
+.btn-outline-success {
+    color: #0f766e;
+    border-color: #0f766e;
+}
+
+.btn-outline-success:hover,
+.btn-outline-success:focus,
+.btn-outline-success:active {
+    color: #ffffff;
+    background-color: #0f766e;
+    border-color: #0f766e;
+}
+
+.btn-outline-info {
+    color: #075985;
+    border-color: #0284c7;
+}
+
+.btn-outline-info:hover,
+.btn-outline-info:focus,
+.btn-outline-info:active {
+    color: #ffffff;
+    background-color: #0284c7;
+    border-color: #0284c7;
+}
+
+.btn-outline-warning {
+    color: #92400e;
+    border-color: #f59e0b;
+}
+
+.btn-outline-warning:hover,
+.btn-outline-warning:focus,
+.btn-outline-warning:active {
+    color: #1f2937;
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+}
+
+.btn-outline-danger {
+    color: #be123c;
+    border-color: #be123c;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus,
+.btn-outline-danger:active {
+    color: #ffffff;
+    background-color: #be123c;
+    border-color: #be123c;
+}
+
+.btn-outline-dark {
+    color: #1f2937;
+    border-color: #1f2937;
+}
+
+.btn-outline-dark:hover,
+.btn-outline-dark:focus,
+.btn-outline-dark:active {
+    color: #ffffff;
+    background-color: #1f2937;
+    border-color: #1f2937;
+}
+
 .btn-sidebar-primary {
     color: #ffffff;
     background-color: var(--med-navy);
@@ -903,6 +983,51 @@ body > .container-fluid.p-4 > * + * {
 
 .dashboard-topbar {
     gap: 1rem;
+}
+
+.dashboard-page .main-content-area {
+    padding-bottom: 2rem;
+}
+
+.dashboard-page .main-content-area > * + * {
+    margin-top: 1.75rem;
+}
+
+.dashboard-section {
+    background: #ffffff;
+    border: 1px solid #eee8ff;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(73, 36, 121, 0.07);
+    padding: 1.1rem 1.1rem 1.25rem;
+}
+
+.dashboard-section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid #f1ecff;
+}
+
+.dashboard-section-head h5 {
+    color: var(--med-navy);
+    font-weight: 700;
+}
+
+.dashboard-page #statsRow,
+.dashboard-page #opsAlertRow,
+.dashboard-page #enterprisePulseRow {
+    --bs-gutter-x: 1.2rem;
+    --bs-gutter-y: 1.2rem;
+}
+
+.dashboard-page .card-stat,
+.dashboard-page .ops-alert-card,
+.dashboard-page .intel-pulse-card,
+.dashboard-page .card-clinical {
+    height: 100%;
 }
 
 .dashboard-topbar-actions {
@@ -1210,7 +1335,7 @@ body > .container-fluid.p-4 > * + * {
     position: relative;
     background-image:
         linear-gradient(140deg, rgba(93, 63, 211, 0.58), rgba(20, 184, 166, 0.44)),
-        url('https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=900&q=80');
+        url('images/departments/default-lab.jpg');
     background-size: cover;
     background-position: center;
 }
@@ -1319,13 +1444,31 @@ body > .container-fluid.p-4 > * + * {
 }
 
 .ops-page .ops-section-card {
-    border: 1px solid #ece6ff;
-    box-shadow: 0 10px 20px rgba(73, 36, 121, 0.08);
+    border: 1px solid #e3dcff;
+    border-radius: 16px;
+    box-shadow: 0 14px 26px rgba(73, 36, 121, 0.1);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(93, 63, 211, 0.06), transparent 35%),
+        linear-gradient(180deg, #ffffff, #fcfbff);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ops-page .ops-section-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 32px rgba(73, 36, 121, 0.14);
+}
+
+.ops-page .ops-collapsible-header {
+    border-bottom: 1px dashed #ddd6fe;
+    padding-bottom: 0.45rem;
 }
 
 .ops-page .ops-section-title {
     border-left: 4px solid #5d3fd3;
-    padding-left: 0.5rem;
+    padding-left: 0.6rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.98rem;
+    letter-spacing: 0.01em;
 }
 
 .ops-page .ops-section-sop .ops-section-title { border-left-color: #4338ca; color: #3730a3; }
@@ -1335,6 +1478,95 @@ body > .container-fluid.p-4 > * + * {
 .ops-page .ops-section-analytics .ops-section-title { border-left-color: #5d3fd3; color: #4f31b6; }
 .ops-page .ops-section-logs .ops-section-title { border-left-color: #475569; color: #334155; }
 .ops-page .ops-section-controls .ops-section-title { border-left-color: #be123c; color: #9f1239; }
+
+.ops-page .ops-section-card form {
+    border: 1px solid #ece7ff;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 0.65rem;
+}
+
+.ops-page .ops-section-card form + form {
+    margin-top: 0.45rem;
+}
+
+.ops-page .btn {
+    border-radius: 10px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.ops-page .btn:hover,
+.ops-page .btn:focus {
+    transform: translateY(-1px);
+}
+
+.ops-page .btn-primary {
+    background: linear-gradient(135deg, #4338ca, #5d3fd3);
+    border-color: #4338ca;
+    box-shadow: 0 9px 16px rgba(67, 56, 202, 0.25);
+}
+
+.ops-page .btn-primary:hover,
+.ops-page .btn-primary:focus {
+    background: linear-gradient(135deg, #3730a3, #4f31b6);
+    border-color: #3730a3;
+    box-shadow: 0 12px 18px rgba(67, 56, 202, 0.3);
+}
+
+.ops-page .btn-outline-primary {
+    color: #4338ca;
+    border-color: #4338ca;
+    background: #f5f3ff;
+}
+
+.ops-page .btn-outline-primary:hover,
+.ops-page .btn-outline-primary:focus {
+    color: #ffffff;
+    background: #4338ca;
+    border-color: #4338ca;
+    box-shadow: 0 10px 16px rgba(67, 56, 202, 0.24);
+}
+
+.ops-page .btn-outline-secondary {
+    background: #f8fafc;
+}
+
+.ops-page .btn-outline-warning {
+    background: #fff7ed;
+}
+
+.ops-page .btn-outline-danger {
+    background: #fff1f2;
+}
+
+.ops-page .btn-outline-success {
+    background: #f0fdfa;
+}
+
+.ops-page .ops-section-toggle {
+    min-width: 76px;
+    font-size: 0.78rem;
+    padding-inline: 0.62rem;
+}
+
+.ops-page .ops-section-card .form-control,
+.ops-page .ops-section-card .form-select {
+    border-color: #d8cfff;
+}
+
+.ops-page .ops-section-card .form-control:focus,
+.ops-page .ops-section-card .form-select:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 0.18rem rgba(124, 58, 237, 0.16);
+}
+
+.ops-page #opsStatus {
+    border-radius: 12px;
+    border: 1px solid #e5defd;
+    box-shadow: 0 8px 18px rgba(73, 36, 121, 0.08);
+}
 
 .qc-page .qc-shell {
     background:

@@ -204,9 +204,9 @@ exports.exportPdf = async (req, res) => {
         doc.moveDown(0.4);
         doc.fontSize(11).text('Prepared by: ___________________________   Date: __________________');
         doc.moveDown(0.5);
-        doc.text('Reviewed by (QA Manager): _______________   Date: __________________');
+        doc.text('Reviewed by (Quality Assurance Manager): _______________   Date: __________________');
         doc.moveDown(0.5);
-        doc.text('Approved by (Lab Manager): ______________   Date: __________________');
+        doc.text('Approved by (Laboratory Manager): ______________   Date: __________________');
         doc.moveDown(0.5);
         doc.text('Notes / Decisions:');
         doc.rect(doc.x, doc.y + 4, 500, 90).strokeColor('#d1d5db').stroke();

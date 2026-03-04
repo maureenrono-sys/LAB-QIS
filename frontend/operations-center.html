@@ -19,32 +19,31 @@
             <a href="qc.html" class="nav-link">Quality Control</a>
             <a href="indicators.html" class="nav-link">Quality Indicators</a>
             <a href="equipment.html" class="nav-link">Equipment Log</a>
-            <a href="nc-capa.html" class="nav-link">NC & CAPA</a>
-            <a href="documents.html" class="nav-link">Documents</a>
-            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
+            <a href="nc-capa.html" class="nav-link">NC & CAPA</a>            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
             <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
             <a href="operations-center.html" class="nav-link active">Operations Center</a>
-            <a href="client-feedback.html" class="nav-link">Client Feedback</a>
-            <a href="admin-portal.html" class="nav-link">Admin Portal</a>
-        </div>
+            <a href="client-feedback.html" class="nav-link">Client Feedback</a>        </div>
     </div>
 
     <div class="main-content-area">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h3 class="fw-bold text-navy mb-1">Operations Center</h3>
-                <p class="text-muted mb-0">Frontend for backend-only modules: SOP workflow, staff competency, risks, automation, and reports.</p>
+                <p class="text-muted mb-0">Central control room for quality operations, governance workflows, and management oversight.</p>
             </div>
             <span id="opsRoleBadge" class="badge bg-dark">Restricted</span>
         </div>
 
         <div id="accessGuard"></div>
         <div id="opsContent" class="d-none">
+            <div class="alert alert-light border mb-3">
+                <strong>Scope:</strong> This workspace currently supports active operations by <strong>Administrator</strong> and <strong>Laboratory Manager</strong>.
+            </div>
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-sop">
-                        <h6 class="fw-bold ops-section-title">SOP Lifecycle (Backend: `/api/sops/*`)</h6>
+                        <h6 class="fw-bold ops-section-title">SOP Lifecycle</h6>
                         <form id="createSopForm" class="row g-2 mb-2">
                             <div class="col-4"><input id="sopCode" class="form-control form-control-sm" placeholder="Code" required></div>
                             <div class="col-8"><input id="sopTitle" class="form-control form-control-sm" placeholder="Title" required></div>
@@ -88,7 +87,7 @@
 
                 <div class="col-md-6">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-staff">
-                        <h6 class="fw-bold ops-section-title">Staff Competency (Backend: `/api/staff/*`)</h6>
+                        <h6 class="fw-bold ops-section-title">Staff Competency</h6>
                         <form id="createStaffForm" class="row g-2 mb-2">
                             <div class="col-4"><input id="staffNo" class="form-control form-control-sm" placeholder="Staff No" required></div>
                             <div class="col-5"><input id="staffFullName" class="form-control form-control-sm" placeholder="Full Name" required></div>
@@ -130,7 +129,7 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-risk">
-                        <h6 class="fw-bold ops-section-title">Risk Register (Backend: `/api/risks/*`)</h6>
+                        <h6 class="fw-bold ops-section-title">Risk Register</h6>
                         <form id="createRiskForm" class="row g-2 mb-2">
                             <div class="col-6"><input id="riskTitle" class="form-control form-control-sm" placeholder="Risk Title" required></div>
                             <div class="col-3"><input id="riskLikelihood" type="number" min="1" max="5" class="form-control form-control-sm" placeholder="Likeli." required></div>
@@ -174,7 +173,7 @@
 
                 <div class="col-md-6">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-audit">
-                        <h6 class="fw-bold ops-section-title">SLIPTA Automation (Backend: `/api/slipta/*`)</h6>
+                        <h6 class="fw-bold ops-section-title">SLIPTA Automation</h6>
                         <form id="createSliptaAssessmentForm" class="row g-2 mb-2">
                             <div class="col-4"><input id="sliptaAssessmentDate" type="date" class="form-control form-control-sm"></div>
                             <div class="col-8"><button class="btn btn-sm btn-primary w-100">Create Assessment</button></div>
@@ -197,7 +196,7 @@
             </div>
 
             <div class="card card-clinical p-3 ops-section-card ops-section-analytics">
-                <h6 class="fw-bold ops-section-title">Analytics Engine + Management Review (Backend: `/api/analytics-engine/*`, `/api/reports/management-review`)</h6>
+                <h6 class="fw-bold ops-section-title">Analytics Engine + Management Review</h6>
                 <div class="row g-2 mb-2">
                     <div class="col-md-3"><button id="loadManagementReviewBtn" class="btn btn-sm btn-outline-primary w-100">Load Management Review</button></div>
                     <div class="col-md-3"><button id="loadDepartmentCompareBtn" class="btn btn-sm btn-outline-primary w-100">Load Department Compare</button></div>
@@ -214,7 +213,7 @@
                         <button id="downloadMonthlyPdfBtn" class="btn btn-sm btn-outline-danger w-100">Generate Monthly Quality PDF</button>
                     </div>
                     <div class="col-md-8 small text-muted d-flex align-items-center">
-                        Uses `/api/analytics-engine/reports/:id/pdf` with the selected `YYYY-MM` period. If empty, it uses current/latest period.
+                        Uses the selected `YYYY-MM` period. If empty, it uses the current/latest period.
                     </div>
                 </div>
                 <div id="managementReviewPanel" class="small text-muted mb-2">Management review not loaded.</div>
@@ -226,7 +225,7 @@
             </div>
 
             <div class="card card-clinical p-3 mt-3 ops-section-card ops-section-logs">
-                <h6 class="fw-bold ops-section-title">System Logs (Backend: `/api/system-logs/*`)</h6>
+                <h6 class="fw-bold ops-section-title">System Logs</h6>
                 <div class="row g-2 mb-2">
                     <div class="col-md-3">
                         <button id="loadLoginLogsBtn" class="btn btn-sm btn-outline-primary w-100">Load Login Logs</button>
@@ -238,7 +237,7 @@
                         <button id="loadRequestLogsBtn" class="btn btn-sm btn-outline-secondary w-100">Load Request Logs</button>
                     </div>
                     <div class="col-md-3 small text-muted d-flex align-items-center">
-                        Visible to Admin, Lab Manager, and QA Manager. Logs are stored in DB and mirrored to `logs/*.log` files.
+                        
                     </div>
                 </div>
                 <div class="row g-2">

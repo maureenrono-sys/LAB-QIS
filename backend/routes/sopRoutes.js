@@ -15,7 +15,7 @@ router.post('/', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASS
 router.post('/:id/versions', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), uploadVersion);
 router.post('/:id/submit', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), submitForApproval);
 router.post('/approvals/:approvalId/action', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER'), approveOrReject);
-router.get('/expiring', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), getExpiringSops);
-router.get('/compliance', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), getSopCompliance);
+router.get('/expiring', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getExpiringSops);
+router.get('/compliance', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getSopCompliance);
 
 module.exports = router;

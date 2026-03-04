@@ -4,10 +4,10 @@ const { addEquipment, getDeptEquipment, checkServiceReminders, recordMaintenance
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoleKeys } = require('../middleware/roleMiddleware');
 
-router.post('/', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER'), addEquipment);
-router.post('/maintenance', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), recordMaintenance);
+router.post('/', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), addEquipment);
+router.post('/maintenance', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), recordMaintenance);
 
-router.get('/dept/:dept', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), getDeptEquipment);
-router.get('/check-reminders', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), checkServiceReminders);
+router.get('/dept/:dept', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getDeptEquipment);
+router.get('/check-reminders', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), checkServiceReminders);
 
 module.exports = router;

@@ -4,7 +4,7 @@ const { getNotifications, markAsRead } = require('../controllers/notificationCon
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoleKeys } = require('../middleware/roleMiddleware');
 
-router.get('/', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), getNotifications);
-router.put('/:id', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), markAsRead);
+router.get('/', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getNotifications);
+router.put('/:id', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), markAsRead);
 
 module.exports = router;

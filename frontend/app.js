@@ -5,21 +5,28 @@ const ROLE_KEYS = Object.freeze({
     ADMIN: 'ADMIN',
     LAB_MANAGER: 'LAB_MANAGER',
     QUALITY_ASSURANCE_MANAGER: 'QUALITY_ASSURANCE_MANAGER',
-    LAB_TECHNOLOGIST: 'LAB_TECHNOLOGIST'
+    LAB_SCIENTIST: 'LAB_SCIENTIST'
 });
 
 const ROLE_KEY_BY_LABEL = Object.freeze({
+    Administrator: ROLE_KEYS.ADMIN,
     'System Administrator': ROLE_KEYS.ADMIN,
+    Admin: ROLE_KEYS.ADMIN,
     'Laboratory Manager': ROLE_KEYS.LAB_MANAGER,
+    'Lab Manager': ROLE_KEYS.LAB_MANAGER,
+    'Quality Assurance Manager': ROLE_KEYS.QUALITY_ASSURANCE_MANAGER,
+    'Quality Assurance Officer': ROLE_KEYS.QUALITY_ASSURANCE_MANAGER,
     'Quality Officer': ROLE_KEYS.QUALITY_ASSURANCE_MANAGER,
-    'Laboratory Technologist': ROLE_KEYS.LAB_TECHNOLOGIST
+    'Laboratory Scientist': ROLE_KEYS.LAB_SCIENTIST,
+    'Laboratory Technologist': ROLE_KEYS.LAB_SCIENTIST,
+    'Lab Technologist': ROLE_KEYS.LAB_SCIENTIST
 });
 
 const ROLE_LABEL_BY_KEY = Object.freeze({
-    [ROLE_KEYS.ADMIN]: 'Admin',
-    [ROLE_KEYS.LAB_MANAGER]: 'Lab Manager',
+    [ROLE_KEYS.ADMIN]: 'Administrator',
+    [ROLE_KEYS.LAB_MANAGER]: 'Laboratory Manager',
     [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: 'Quality Assurance Manager',
-    [ROLE_KEYS.LAB_TECHNOLOGIST]: 'Lab Technologist'
+    [ROLE_KEYS.LAB_SCIENTIST]: 'Laboratory Scientist'
 });
 
 const currentRoleLabel = localStorage.getItem('userRole') || '';
@@ -30,9 +37,41 @@ let currentRoleKey = (loggedInRoleKey === ROLE_KEYS.ADMIN && isDemoMode && previ
     ? previewRoleKey
     : loggedInRoleKey;
 let notificationPoller = null;
+let ncStatusFilter = 'ALL';
 
 if (!token && !window.location.href.includes('index.html')) {
     window.location.href = 'index.html';
+}
+
+function isAdminLabViewActive() {
+    return loggedInRoleKey === ROLE_KEYS.ADMIN && Boolean(localStorage.getItem('adminViewLabId'));
+}
+
+function clearAdminLabView() {
+    localStorage.removeItem('adminViewLabId');
+    localStorage.removeItem('adminViewLabName');
+}
+
+if (!window.__labScopedFetchPatched) {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (input, init = {}) => {
+        const scopedLabId = isAdminLabViewActive() ? (localStorage.getItem('adminViewLabId') || '') : '';
+        if (!scopedLabId) return nativeFetch(input, init);
+
+        const requestUrl = typeof input === 'string'
+            ? input
+            : (input && typeof input.url === 'string' ? input.url : String(input || ''));
+
+        if (!/\/api\//.test(requestUrl)) return nativeFetch(input, init);
+
+        const headers = new Headers(init.headers || (input && input.headers) || undefined);
+        if (!headers.has('X-Lab-Context')) {
+            headers.set('X-Lab-Context', scopedLabId);
+        }
+
+        return nativeFetch(input, { ...init, headers });
+    };
+    window.__labScopedFetchPatched = true;
 }
 
 function isManagerOrAdmin() {
@@ -137,9 +176,13 @@ function setLabNameHeading() {
     const heading = document.getElementById('labNameHeading');
     if (!heading) return;
 
-    const labName = localStorage.getItem('labName');
+    const labName = isAdminLabViewActive()
+        ? (localStorage.getItem('adminViewLabName') || localStorage.getItem('labName'))
+        : localStorage.getItem('labName');
     if (labName && labName.trim().length > 0) {
-        heading.textContent = labName;
+        heading.textContent = isAdminLabViewActive()
+            ? `${labName} (Admin Lab View)`
+            : labName;
     }
 
     const roleBadge = document.getElementById('roleBadge');
@@ -154,15 +197,42 @@ function setLabNameHeading() {
     }
 }
 
+function initAdminLabViewControl() {
+    if (loggedInRoleKey !== ROLE_KEYS.ADMIN) return;
+    const topbarActions = document.querySelector('.dashboard-topbar-actions');
+    if (!topbarActions) return;
+
+    const existing = document.getElementById('exitAdminLabViewBtn');
+    if (isAdminLabViewActive()) {
+        if (!existing) {
+            const btn = document.createElement('button');
+            btn.id = 'exitAdminLabViewBtn';
+            btn.className = 'btn btn-sm btn-outline-danger';
+            btn.type = 'button';
+            btn.textContent = 'Exit Lab View';
+            btn.addEventListener('click', () => {
+                clearAdminLabView();
+                window.location.href = 'admin-portal.html';
+            });
+            topbarActions.appendChild(btn);
+        }
+        return;
+    }
+
+    existing?.remove();
+}
+
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('roleKey');
     localStorage.removeItem('viewRoleKey');
     localStorage.removeItem('labName');
+    localStorage.removeItem('labId');
     localStorage.removeItem('fullName');
     localStorage.removeItem('profilePhotoUrl');
     localStorage.removeItem('lastLoginAt');
+    clearAdminLabView();
     window.location.href = 'index.html';
 }
 
@@ -453,7 +523,7 @@ function renderDashboardByRole(data) {
 
     const dashboardConfigByRole = {
         [ROLE_KEYS.ADMIN]: {
-            roleName: 'Admin',
+            roleName: 'Administrator',
             subtitle: 'System-wide quality governance and oversight actions.',
             metrics: { m1: 'My Star Level', m2: 'Global Avg', m3: 'Critical Alerts' },
             actions: [
@@ -465,7 +535,7 @@ function renderDashboardByRole(data) {
             ]
         },
         [ROLE_KEYS.LAB_MANAGER]: {
-            roleName: 'Lab Manager',
+            roleName: 'Laboratory Manager',
             subtitle: 'Operational quality performance and management review actions.',
             metrics: { m1: 'Lab Star Level', m2: 'Peer Average', m3: 'Priority Alerts' },
             actions: [
@@ -484,12 +554,11 @@ function renderDashboardByRole(data) {
                 { href: 'qc.html', label: 'Monitor IQC', btn: 'btn-primary' },
                 { href: 'nc-capa.html', label: 'NC & CAPA Tracker', btn: 'btn-warning' },
                 { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-sidebar-primary' },
-                { href: 'documents.html', label: 'Controlled Documents', btn: 'btn-success' },
-                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-outline-dark' }
+                { href: 'documents.html', label: 'Controlled Documents', btn: 'btn-success' }
             ]
         },
-        [ROLE_KEYS.LAB_TECHNOLOGIST]: {
-            roleName: 'Lab Technologist',
+        [ROLE_KEYS.LAB_SCIENTIST]: {
+            roleName: 'Laboratory Scientist',
             subtitle: 'Daily technical quality tasks and laboratory operations.',
             metrics: { m1: 'My Lab Star', m2: 'Peer Average', m3: 'Assigned Alerts' },
             actions: [
@@ -501,7 +570,7 @@ function renderDashboardByRole(data) {
         }
     };
 
-    const dashboardConfig = dashboardConfigByRole[currentRoleKey] || dashboardConfigByRole[ROLE_KEYS.LAB_TECHNOLOGIST];
+    const dashboardConfig = dashboardConfigByRole[currentRoleKey] || dashboardConfigByRole[ROLE_KEYS.LAB_SCIENTIST];
     const actionButtons = dashboardConfig.actions
         .map((action) => `<a class="btn ${action.btn}" href="${action.href}">${action.label}</a>`)
         .join('');
@@ -582,11 +651,12 @@ function applyRoleNavigation() {
         ]),
         [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html', 'equipment.html',
-            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html', 'benchmarking.html', 'operations-center.html', 'client-feedback.html'
+            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html', 'benchmarking.html', 'client-feedback.html'
         ]),
-        [ROLE_KEYS.LAB_TECHNOLOGIST]: new Set([
+        [ROLE_KEYS.LAB_SCIENTIST]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html',
-            'equipment.html', 'nc-capa.html', 'documents.html', 'benchmarking.html', 'client-feedback.html'
+            'equipment.html', 'nc-capa.html', 'audits.html', 'analytics.html',
+            'benchmarking.html', 'client-feedback.html'
         ])
     };
 
@@ -836,6 +906,7 @@ async function loadDashboardIntelligenceSummary() {
 function renderWeeklyCapaReview(ncItems) {
     const container = document.getElementById('capaReviewRow');
     if (!container) return;
+    const ncCodeMap = buildNcCodeMap(ncItems);
 
     const now = new Date();
     const weekStart = new Date(now);
@@ -883,7 +954,7 @@ function renderWeeklyCapaReview(ncItems) {
                     <tbody>
                         ${hotList.length ? hotList.map((nc) => `
                             <tr>
-                                <td class="capa-purple-cell">#${nc.id.substring(0, 8)}</td>
+                                <td class="capa-purple-cell">${ncCodeMap[nc.id] || 'NC'}</td>
                                 <td><span class="badge ${getNcStatusBadgeClass(nc.status)}">${nc.status}</span></td>
                                 <td><span class="badge ${getNcSeverityBadgeClass(nc.severity)}">${nc.severity}</span></td>
                                 <td class="capa-purple-cell">${nc.assignedTo || 'Unassigned'}</td>
@@ -1057,7 +1128,7 @@ async function loadQI() {
 
         await fetch(`${API_URL}/qi`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
@@ -1112,11 +1183,35 @@ function initNotificationPolling() {
 
 async function loadNC() {
     const contentArea = document.getElementById('contentArea');
+    const canLogNc = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST].includes(loggedInRoleKey);
+    const canManageNcWorkflow = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST].includes(loggedInRoleKey);
     
     contentArea.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3>Non-Conformance & CAPA Management</h3>
-            <button class="btn btn-primary" onclick="showNCModal()">Log New NC</button>
+            ${canLogNc ? '<button class="btn btn-primary" onclick="showNCModal()">Log New NC</button>' : ''}
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge text-bg-light border">Total: <span id="ncCountTotal">0</span></span>
+                        <span class="badge text-bg-light border">Open: <span id="ncCountOpen">0</span></span>
+                        <span class="badge text-bg-light border">In Progress: <span id="ncCountInProgress">0</span></span>
+                        <span class="badge text-bg-light border">Verified: <span id="ncCountVerified">0</span></span>
+                        <span class="badge text-bg-light border">Closed: <span id="ncCountClosed">0</span></span>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="NC status filters">
+                        <button type="button" class="btn btn-outline-secondary" data-nc-filter="ALL">All</button>
+                        <button type="button" class="btn btn-outline-danger" data-nc-filter="Open">Open</button>
+                        <button type="button" class="btn btn-outline-warning" data-nc-filter="In Progress">In Progress</button>
+                        <button type="button" class="btn btn-outline-info" data-nc-filter="Verified">Verified</button>
+                        <button type="button" class="btn btn-outline-success" data-nc-filter="Closed">Closed</button>
+                    </div>
+                </div>
+                <div class="small text-muted mt-2">Closed NC records are retained for audit history and can be tracked using the status filters.</div>
+            </div>
         </div>
 
         <div class="row" id="ncList">
@@ -1165,46 +1260,99 @@ async function loadNC() {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
+    const ncCodeMap = buildNcCodeMap(data);
+    const ncRows = data.map((nc) => {
+        const ncCode = ncCodeMap[nc.id] || 'NC';
+        return {
+            ...nc,
+            ncCode,
+            capaCode: getCapaCodeFromNcCode(ncCode)
+        };
+    });
     const ncList = document.getElementById('ncList');
+    const statusCounts = {
+        Open: ncRows.filter((nc) => nc.status === 'Open').length,
+        InProgress: ncRows.filter((nc) => nc.status === 'In Progress').length,
+        Verified: ncRows.filter((nc) => nc.status === 'Verified').length,
+        Closed: ncRows.filter((nc) => nc.status === 'Closed').length
+    };
+    document.getElementById('ncCountTotal').textContent = String(ncRows.length);
+    document.getElementById('ncCountOpen').textContent = String(statusCounts.Open);
+    document.getElementById('ncCountInProgress').textContent = String(statusCounts.InProgress);
+    document.getElementById('ncCountVerified').textContent = String(statusCounts.Verified);
+    document.getElementById('ncCountClosed').textContent = String(statusCounts.Closed);
 
-    ncList.innerHTML = data.map(nc => `
-        <div class="col-md-6 mb-3">
-            <div class="card nc-capa-card border-start border-4 ${getSeverityColor(nc.severity)} shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h5 class="card-title">Incident #${nc.id.substring(0,8)}</h5>
-                        <span class="badge ${getNcStatusBadgeClass(nc.status)}">${nc.status}</span>
-                    </div>
-                    <p class="small text-muted mb-1">Severity: <span class="badge ${getNcSeverityBadgeClass(nc.severity)}">${nc.severity}</span></p>
-                    <p class="card-text"><strong>Description:</strong> ${nc.description}</p>
-                    <p class="card-text"><small class="text-muted">Root Cause: ${nc.rootCause || 'Pending...'}</small></p>
-                    <hr>
-                    <p class="card-text"><strong>CAPA:</strong> ${nc.correctiveAction || 'Not defined'}</p>
-                    <div class="d-flex gap-2 flex-wrap mb-2">
-                        <span class="badge text-bg-light border">Due: ${nc.deadline ? new Date(nc.deadline).toLocaleDateString() : 'Not set'}</span>
-                        <span class="badge text-bg-light border">Owner: ${nc.assignedTo || 'Unassigned'}</span>
-                    </div>
-                    ${nc.effectivenessEvidence ? `<p class="small text-muted mb-2">Effectiveness: ${nc.effectivenessEvidence}</p>` : ''}
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button class="btn btn-sm btn-outline-primary" onclick="openCapaUpdate('${encodeURIComponent(JSON.stringify({
-                            id: nc.id,
-                            status: nc.status,
-                            rootCause: nc.rootCause || '',
-                            correctiveAction: nc.correctiveAction || '',
-                            deadline: nc.deadline ? new Date(nc.deadline).toISOString().split('T')[0] : '',
-                            assignedTo: nc.assignedTo || '',
-                            overdueJustification: nc.overdueJustification || '',
-                            effectivenessEvidence: nc.effectivenessEvidence || ''
-                        }))}')">Update CAPA</button>
-                        ${nc.status !== 'Closed'
-                            ? `<button class="btn btn-sm btn-outline-success" onclick="advanceNCStatus('${nc.id}','${nc.status}')">Advance to ${getNextNcStatusLabel(nc.status)}</button>`
-                            : ''
-                        }
+    const renderNcCards = () => {
+        const filteredRows = ncStatusFilter === 'ALL'
+            ? [...ncRows]
+            : ncRows.filter((nc) => nc.status === ncStatusFilter);
+        const orderedRows = filteredRows.sort(
+            (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+
+        ncList.innerHTML = orderedRows.map((nc) => {
+        const encodedNc = encodeURIComponent(JSON.stringify({
+            id: nc.id,
+            status: nc.status,
+            rootCause: nc.rootCause || '',
+            correctiveAction: nc.correctiveAction || '',
+            deadline: nc.deadline ? new Date(nc.deadline).toISOString().split('T')[0] : '',
+            assignedTo: nc.assignedTo || '',
+            overdueJustification: nc.overdueJustification || '',
+            effectivenessEvidence: nc.effectivenessEvidence || '',
+            ncCode: nc.ncCode,
+            capaCode: nc.capaCode
+        }));
+
+        return `
+            <div class="col-md-6 mb-3">
+                <div class="card nc-capa-card border-start border-4 ${getSeverityColor(nc.severity)} shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="card-title mb-0">${nc.ncCode}</h5>
+                            <span class="badge ${getNcStatusBadgeClass(nc.status)}">${nc.status}</span>
+                        </div>
+                        <p class="small text-muted mb-1">${nc.capaCode}</p>
+                        <p class="small text-muted mb-1">Severity: <span class="badge ${getNcSeverityBadgeClass(nc.severity)}">${nc.severity}</span></p>
+                        <p class="card-text"><strong>Description:</strong> ${nc.description}</p>
+                        <p class="card-text"><small class="text-muted">Root Cause: ${nc.rootCause || 'Pending...'}</small></p>
+                        <hr>
+                        <p class="card-text"><strong>CAPA:</strong> ${nc.correctiveAction || 'Not defined'}</p>
+                        <div class="d-flex gap-2 flex-wrap mb-2">
+                            <span class="badge text-bg-light border">Due: ${nc.deadline ? new Date(nc.deadline).toLocaleDateString() : 'Not set'}</span>
+                            <span class="badge text-bg-light border">Owner: ${nc.assignedTo || 'Unassigned'}</span>
+                        </div>
+                        ${nc.effectivenessEvidence ? `<p class="small text-muted mb-2">Effectiveness: ${nc.effectivenessEvidence}</p>` : ''}
+                        <div class="d-flex gap-2 flex-wrap">
+                            ${canManageNcWorkflow ? `<button class="btn btn-sm btn-outline-primary" onclick="openCapaUpdate('${encodedNc}')">Update CAPA</button>` : ''}
+                            ${canManageNcWorkflow && nc.status !== 'Closed'
+                                ? `<button class="btn btn-sm btn-outline-success" onclick="advanceNCStatus('${encodedNc}')">Advance to ${getNextNcStatusLabel(nc.status)}</button>`
+                                : ''
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+        }).join('');
+
+        if (!orderedRows.length) {
+            ncList.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">No NC records found for this status filter.</div></div>';
+        }
+    };
+
+    document.querySelectorAll('[data-nc-filter]').forEach((btn) => {
+        if (btn.getAttribute('data-nc-filter') === ncStatusFilter) {
+            btn.classList.remove('btn-outline-secondary', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-success');
+            btn.classList.add('btn-primary');
+        }
+        btn.addEventListener('click', () => {
+            ncStatusFilter = btn.getAttribute('data-nc-filter') || 'ALL';
+            loadNC();
+        });
+    });
+
+    renderNcCards();
 
     // Form submission logic
     document.getElementById('ncForm').onsubmit = async (e) => {
@@ -1218,13 +1366,13 @@ async function loadNC() {
 
         await fetch(`${API_URL}/nc`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(ncData)
         });
-        
+
         // Hide modal and refresh
         const modal = bootstrap.Modal.getInstance(document.getElementById('ncModal'));
         modal.hide();
@@ -1260,12 +1408,136 @@ function getNextNcStatusLabel(currentStatus) {
     return getNextNcStatus(currentStatus) || 'Next Stage';
 }
 
-async function advanceNCStatus(id, currentStatus) {
-    const nextStatus = getNextNcStatus(currentStatus);
-    if (!nextStatus) return;
+function buildNcCodeMap(ncItems) {
+    const ordered = [...(Array.isArray(ncItems) ? ncItems : [])].sort(
+        (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    );
+    const map = {};
+    ordered.forEach((nc, idx) => {
+        if (nc?.id) {
+            map[nc.id] = `NC${idx + 1}`;
+        }
+    });
+    return map;
+}
 
-    const proceed = confirm(`Move this NC from "${currentStatus}" to "${nextStatus}"?`);
-    if (!proceed) return;
+function getCapaCodeFromNcCode(ncCode) {
+    const ncNumber = String(ncCode || '').replace('NC', '').trim();
+    return ncNumber ? `CAPA${ncNumber}` : 'CAPA';
+}
+
+async function advanceNCStatus(encodedNc) {
+    const nc = JSON.parse(decodeURIComponent(encodedNc));
+    const nextStatus = getNextNcStatus(nc.status);
+    if (!nextStatus) return;
+    openCapaUpdate(encodedNc, nextStatus);
+}
+
+function ensureNcCapaUpdateModal() {
+    if (document.getElementById('ncCapaUpdateModal')) return;
+
+    const shell = document.createElement('div');
+    shell.innerHTML = `
+        <div class="modal fade" id="ncCapaUpdateModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Update CAPA Record</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="ncCapaEditId">
+                        <div class="alert alert-light border mb-3 py-2 small">
+                            <strong>Incident:</strong> <span id="ncCapaEditRef">N/A</span>
+                        </div>
+
+                        <div class="border rounded p-3 mb-3">
+                            <div class="fw-semibold small text-uppercase text-muted mb-2">CAPA Progress</div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Status</label>
+                                    <select id="ncCapaEditStatus" class="form-select form-select-sm">
+                                        <option>Open</option>
+                                        <option>In Progress</option>
+                                        <option>Verified</option>
+                                        <option>Closed</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Deadline</label>
+                                    <input id="ncCapaEditDeadline" type="date" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Assigned To</label>
+                                    <input id="ncCapaEditAssignedTo" class="form-control form-control-sm" placeholder="Responsible officer">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Overdue Justification</label>
+                                    <input id="ncCapaEditOverdue" class="form-control form-control-sm" placeholder="Only required if overdue">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border rounded p-3 mb-3">
+                            <div class="fw-semibold small text-uppercase text-muted mb-2">Analysis And Action</div>
+                            <div class="mb-2">
+                                <label class="form-label small">Root Cause Analysis</label>
+                                <textarea id="ncCapaEditRootCause" rows="3" class="form-control form-control-sm" placeholder="Document why the incident occurred"></textarea>
+                            </div>
+                            <div>
+                                <label class="form-label small">Corrective / Preventive Action</label>
+                                <textarea id="ncCapaEditAction" rows="3" class="form-control form-control-sm" placeholder="Describe the corrective and preventive actions"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="border rounded p-3">
+                            <div class="fw-semibold small text-uppercase text-muted mb-2">Verification</div>
+                            <label class="form-label small">Effectiveness Evidence</label>
+                            <textarea id="ncCapaEditEvidence" rows="3" class="form-control form-control-sm" placeholder="Evidence that actions resolved the issue"></textarea>
+                        </div>
+
+                        <div id="ncCapaEditStatusMsg" class="small mt-3"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button id="ncCapaEditSubmitBtn" class="btn btn-sm btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(shell);
+
+    document.getElementById('ncCapaEditSubmitBtn')?.addEventListener('click', submitCapaUpdate);
+}
+
+async function openCapaUpdate(encodedNc, targetStatus = '') {
+    ensureNcCapaUpdateModal();
+    const nc = JSON.parse(decodeURIComponent(encodedNc));
+    document.getElementById('ncCapaEditId').value = nc.id;
+    document.getElementById('ncCapaEditRef').textContent = `${nc.ncCode || 'NC'} | ${nc.capaCode || 'CAPA'}`;
+    document.getElementById('ncCapaEditStatus').value = targetStatus || nc.status || 'Open';
+    document.getElementById('ncCapaEditRootCause').value = nc.rootCause || '';
+    document.getElementById('ncCapaEditAction').value = nc.correctiveAction || '';
+    document.getElementById('ncCapaEditDeadline').value = nc.deadline || '';
+    document.getElementById('ncCapaEditAssignedTo').value = nc.assignedTo || '';
+    document.getElementById('ncCapaEditOverdue').value = nc.overdueJustification || '';
+    document.getElementById('ncCapaEditEvidence').value = nc.effectivenessEvidence || '';
+    const statusEl = document.getElementById('ncCapaEditStatusMsg');
+    statusEl.className = 'small mt-3';
+    statusEl.textContent = targetStatus
+        ? `Review CAPA details and click "Save Changes" to move status to "${targetStatus}".`
+        : '';
+    new bootstrap.Modal(document.getElementById('ncCapaUpdateModal')).show();
+}
+
+async function submitCapaUpdate() {
+    const id = document.getElementById('ncCapaEditId').value;
+    const statusEl = document.getElementById('ncCapaEditStatusMsg');
+    const submitBtn = document.getElementById('ncCapaEditSubmitBtn');
+    submitBtn.disabled = true;
+    statusEl.className = 'small mt-3 text-muted';
+    statusEl.textContent = 'Saving changes...';
 
     const res = await fetch(`${API_URL}/nc/${id}`, {
         method: 'PUT',
@@ -1273,64 +1545,29 @@ async function advanceNCStatus(id, currentStatus) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: nextStatus })
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-        alert(data.message || 'Failed to update NC status');
-        return;
-    }
-
-    loadNC();
-}
-
-async function openCapaUpdate(encodedNc) {
-    const nc = JSON.parse(decodeURIComponent(encodedNc));
-    const rootCause = prompt('Root Cause Analysis', nc.rootCause);
-    if (rootCause === null) return;
-
-    const correctiveAction = prompt('Corrective / Preventive Action', nc.correctiveAction);
-    if (correctiveAction === null) return;
-
-    const deadline = prompt('Deadline (YYYY-MM-DD)', nc.deadline);
-    if (deadline === null) return;
-
-    const assignedTo = prompt('Assigned To (optional)', nc.assignedTo);
-    if (assignedTo === null) return;
-
-    const overdueJustification = prompt('Overdue Justification (required if overdue and moving to Verified)', nc.overdueJustification);
-    if (overdueJustification === null) return;
-
-    const effectivenessEvidence = prompt('Effectiveness Evidence (required to close CAPA)', nc.effectivenessEvidence);
-    if (effectivenessEvidence === null) return;
-
-    const statusInput = prompt('Status (Open | In Progress | Verified | Closed)', nc.status);
-    if (statusInput === null) return;
-
-    const res = await fetch(`${API_URL}/nc/${nc.id}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
-            rootCause: rootCause.trim(),
-            correctiveAction: correctiveAction.trim(),
-            deadline: deadline.trim(),
-            assignedTo: assignedTo.trim(),
-            overdueJustification: overdueJustification.trim(),
-            effectivenessEvidence: effectivenessEvidence.trim(),
-            status: statusInput.trim()
+            rootCause: document.getElementById('ncCapaEditRootCause').value.trim(),
+            correctiveAction: document.getElementById('ncCapaEditAction').value.trim(),
+            deadline: document.getElementById('ncCapaEditDeadline').value || null,
+            assignedTo: document.getElementById('ncCapaEditAssignedTo').value.trim(),
+            overdueJustification: document.getElementById('ncCapaEditOverdue').value.trim(),
+            effectivenessEvidence: document.getElementById('ncCapaEditEvidence').value.trim(),
+            status: document.getElementById('ncCapaEditStatus').value
         })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-        alert(data.message || 'Failed to update CAPA');
+        submitBtn.disabled = false;
+        statusEl.className = 'small mt-3 text-danger';
+        statusEl.textContent = data.message || 'Failed to update CAPA.';
         return;
     }
 
+    submitBtn.disabled = false;
+    statusEl.className = 'small mt-3 text-success';
+    statusEl.textContent = 'CAPA updated successfully.';
+    bootstrap.Modal.getInstance(document.getElementById('ncCapaUpdateModal'))?.hide();
     loadNC();
 }
 
@@ -1346,8 +1583,8 @@ function showNCModal() {
     new bootstrap.Modal(document.getElementById('ncModal')).show();
 }
 async function loadDocs() {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.LAB_TECHNOLOGIST], 'Document Control')) return;
-    const canManageDocs = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey);
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.LAB_SCIENTIST], 'Document Control')) return;
+    const canUploadDocs = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST].includes(loggedInRoleKey);
     const signedInRoleLabel = ROLE_LABEL_BY_KEY[loggedInRoleKey] || currentRoleLabel || 'User';
     const contentArea = document.getElementById('contentArea');
     contentArea.innerHTML = `
@@ -1360,7 +1597,7 @@ async function loadDocs() {
         </div>
 
         <div class="docs-toolbar mb-3">
-            <div class="doc-upload-panel p-3 ${canManageDocs ? '' : 'd-none'}">
+            <div class="doc-upload-panel p-3 ${canUploadDocs ? '' : 'd-none'}">
                 <h6 class="fw-bold mb-2">Upload Document</h6>
                 <form id="docForm">
                     <input type="text" id="docTitle" class="form-control mb-2" placeholder="SOP Title" required>
@@ -1384,7 +1621,7 @@ async function loadDocs() {
                     <button type="submit" class="btn btn-primary btn-sm w-100">Upload SOP</button>
                 </form>
             </div>
-            ${canManageDocs ? '' : '<div class="alert alert-info mb-0 py-2">View and print access enabled for Laboratory Technologist.</div>'}
+            ${canUploadDocs ? '' : '<div class="alert alert-info mb-0 py-2">View and print access enabled for your role.</div>'}
         </div>
 
         <div class="mb-3">
@@ -1398,7 +1635,7 @@ async function loadDocs() {
         <div id="docCardsContainer" class="doc-catalog"></div>
     `;
 
-    if (canManageDocs) {
+    if (canUploadDocs) {
         const docForm = document.getElementById('docForm');
         docForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1428,6 +1665,7 @@ async function loadDocs() {
                 return;
             }
 
+            alert('Document uploaded successfully. Verification notification sent to Laboratory Manager and Quality Assurance Manager.');
             docForm.reset();
             document.getElementById('docVersion').value = '1.0';
             loadDocs();
@@ -1724,13 +1962,14 @@ async function runGlobalAlertsEngine() {
 initNotificationPolling();
 
 async function loadAudits() {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'SLIPTA Audits')) return;
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST], 'SLIPTA Audits')) return;
     const contentArea = document.getElementById('contentArea');
+    const canEdit = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey);
     
     contentArea.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3>SLIPTA / ISO 15189 Audit</h3>
-            <button class="btn btn-primary" onclick="showAuditForm()">New Self-Assessment</button>
+            ${canEdit ? '<button class="btn btn-primary" onclick="showAuditForm()">New Self-Assessment</button>' : '<span class="badge bg-info">Read-only</span>'}
         </div>
 
         <div id="auditHistory" class="row">
@@ -1778,6 +2017,7 @@ async function loadAudits() {
 }
 
 function showAuditForm() {
+    if (![ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) return;
     document.getElementById('auditHistory').classList.add('d-none');
     document.getElementById('auditFormContainer').classList.remove('d-none');
 }
@@ -1786,6 +2026,10 @@ function showAuditForm() {
 document.addEventListener('submit', async (e) => {
     if (e.target.id === 'sliptaForm') {
         e.preventDefault();
+        if (![ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) {
+            alert('Read-only mode: Laboratory Scientist cannot submit audits.');
+            return;
+        }
         
         const checklistItems = SLIPTA_CHECKLIST;
         const findings = [];
@@ -1860,7 +2104,7 @@ async function loadAuditHistory() {
 }
 
 async function loadAnalytics() {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'Risk & Analytics')) return;
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST], 'Risk & Analytics')) return;
     const contentArea = document.getElementById('contentArea');
     contentArea.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -1936,7 +2180,7 @@ async function loadAnalytics() {
 }
 
 async function loadBenchmarking() {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_TECHNOLOGIST], 'Peer Benchmarking')) return;
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST], 'Peer Benchmarking')) return;
     const contentArea = document.getElementById('contentArea');
     if (!contentArea) return;
 
@@ -2046,10 +2290,26 @@ async function loadBenchmarking() {
 }
 
 async function loadAdminPortal() {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN], 'System Admin Portal')) return;
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN], 'Administrator Portal')) return;
     const statusEl = document.getElementById('adminPortalStatus');
     const contentEl = document.getElementById('adminPortalContent');
     if (!statusEl || !contentEl) return;
+    const actionsHost = document.getElementById('adminPortalActions');
+    if (actionsHost) {
+        actionsHost.innerHTML = `
+            <button class="btn btn-sm btn-primary" id="openAddLabModalBtn">Add Lab</button>
+            <button class="btn btn-sm btn-outline-primary" id="openAddUserModalBtn">Add User</button>
+            <button class="btn btn-sm btn-outline-secondary" id="refreshAdminPortalBtn">Refresh</button>
+        `;
+        document.getElementById('openAddLabModalBtn')?.addEventListener('click', () => {
+            ensureActionModals();
+            new bootstrap.Modal(document.getElementById('adminAddLabModal')).show();
+        });
+        document.getElementById('openAddUserModalBtn')?.addEventListener('click', async () => {
+            await openAddUserModalFromMenu();
+        });
+        document.getElementById('refreshAdminPortalBtn')?.addEventListener('click', loadAdminPortal);
+    }
 
     statusEl.className = 'alert alert-info mb-3';
     statusEl.textContent = 'Loading all labs and performance data...';
@@ -2086,7 +2346,8 @@ async function loadAdminPortal() {
                         </div>
                         <div class="d-flex gap-2 flex-wrap">
                             <button class="btn btn-sm btn-outline-primary" onclick="loadLabUsers('${lab.id}', '${safeLabName}')">Users</button>
-                            <button class="btn btn-sm btn-outline-success" onclick="loadLabDashboardSnapshot('${lab.id}', '${safeLabName}')">Dashboard</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openAddUserModalFromMenu('${lab.id}')">Add User</button>
+                            <button class="btn btn-sm btn-outline-success" onclick="openLabWorkspace('${lab.id}', '${safeLabName}')">Dashboard</button>
                             <button class="btn btn-sm btn-outline-warning" onclick="editLabFromAdmin('${lab.id}', '${safeLabName}', '${safeLabType}', '${safeRegNo}', '${safeAddress}', '${safeAcc}')">Edit Lab</button>
                         </div>
                     </div>
@@ -2107,7 +2368,7 @@ async function loadAdminPortal() {
 }
 
 async function loadClientFeedback() {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_TECHNOLOGIST], 'Client Feedback')) return;
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST], 'Client Feedback')) return;
     const contentArea = document.getElementById('contentArea');
     if (!contentArea) return;
 
@@ -2237,7 +2498,7 @@ async function submitClientFeedback(e) {
 
     statusEl.className = 'alert alert-success mt-2 mb-0';
     statusEl.textContent = data.autoNc
-        ? `Feedback submitted. Auto-NC created (${data.autoNc.id}).`
+        ? 'Feedback submitted. Auto-NC created and linked.'
         : 'Feedback submitted successfully.';
     document.getElementById('feedbackForm').reset();
     await Promise.all([loadFeedbackWorkflow(), loadFeedbackAnalytics(), loadFeedbackReport()]);
@@ -2246,11 +2507,19 @@ async function submitClientFeedback(e) {
 async function loadFeedbackWorkflow() {
     const table = document.getElementById('fbWorkflowTable');
     if (!table) return;
-    const res = await fetch(`${API_URL}/client-feedback`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const list = await res.json().catch(() => []);
-    if (!res.ok) {
+    const [feedbackRes, ncRes] = await Promise.all([
+        fetch(`${API_URL}/client-feedback`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/nc`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => null)
+    ]);
+    const list = await feedbackRes.json().catch(() => []);
+    const ncList = ncRes && ncRes.ok ? await ncRes.json().catch(() => []) : [];
+    const ncCodeMap = buildNcCodeMap(ncList);
+
+    if (!feedbackRes.ok) {
         table.innerHTML = `<tr><td colspan="10" class="text-danger text-center">${list.message || 'Failed to load feedback records.'}</td></tr>`;
         return;
     }
@@ -2262,6 +2531,8 @@ async function loadFeedbackWorkflow() {
 
     table.innerHTML = list.map((item) => {
         const safeNotes = String(item.resolutionNotes || '').replace(/'/g, "\\'");
+        const canManageFeedbackWorkflow = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey);
+        const canLinkFeedbackNc = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST].includes(loggedInRoleKey);
         return `
             <tr>
                 <td>${item.feedbackCode || item.id.slice(0, 8)}</td>
@@ -2272,10 +2543,11 @@ async function loadFeedbackWorkflow() {
                 <td>${item.severity}</td>
                 <td>${item.status}</td>
                 <td>${item.assignedOfficer || '-'}</td>
-                <td>${item.linkedNcId ? `<code>${item.linkedNcId.slice(0, 8)}</code>` : '-'}</td>
+                <td>${item.linkedNcId ? `<code>${ncCodeMap[item.linkedNcId] || 'NC'}</code>` : '-'}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="updateFeedbackWorkflow('${item.id}', '${item.status}', '${item.assignedOfficer || ''}', '${safeNotes}')">Update</button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="linkFeedbackToNc('${item.id}')">Link NC</button>
+                    ${canManageFeedbackWorkflow ? `<button class="btn btn-sm btn-outline-primary" onclick="updateFeedbackWorkflow('${item.id}', '${item.status}', '${item.assignedOfficer || ''}', '${safeNotes}')">Update</button>` : ''}
+                    ${canLinkFeedbackNc ? `<button class="btn btn-sm btn-outline-secondary" onclick="linkFeedbackToNc('${item.id}')">Link NC/CAPA</button>` : ''}
+                    ${canManageFeedbackWorkflow || canLinkFeedbackNc ? '' : '<span class="text-muted small">View only</span>'}
                 </td>
             </tr>
         `;
@@ -2294,10 +2566,10 @@ async function updateFeedbackWorkflow(id, currentStatus, currentOfficer, current
 }
 
 async function linkFeedbackToNc(id) {
-    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER], 'Feedback NC Link')) return;
+    if (!ensureRoleAccess([ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST], 'Feedback NC Link')) return;
     ensureActionModals();
     document.getElementById('fbLinkId').value = id;
-    document.getElementById('fbLinkNcId').value = '';
+    document.getElementById('fbLinkModalStatus').textContent = '';
     new bootstrap.Modal(document.getElementById('feedbackLinkNcModal')).show();
 }
 
@@ -2410,6 +2682,13 @@ async function loadLabUsers(labId, labName) {
     `;
 }
 
+function openLabWorkspace(labId, labName) {
+    if (loggedInRoleKey !== ROLE_KEYS.ADMIN) return;
+    localStorage.setItem('adminViewLabId', labId);
+    localStorage.setItem('adminViewLabName', labName || '');
+    window.location.href = 'dashboard.html';
+}
+
 async function loadLabDashboardSnapshot(labId, labName) {
     const mount = document.getElementById(`labDashboard-${labId}`);
     if (!mount) return;
@@ -2451,8 +2730,63 @@ async function editUserFromAdmin(userId, fullName, role) {
     ensureActionModals();
     document.getElementById('adminEditUserId').value = userId;
     document.getElementById('adminEditUserName').value = fullName || '';
-    document.getElementById('adminEditUserRole').value = role || 'Laboratory Technologist';
+    document.getElementById('adminEditUserRole').value = role || 'Laboratory Scientist';
     new bootstrap.Modal(document.getElementById('adminEditUserModal')).show();
+}
+
+async function loadLabOptionsForUserCreation(selectedLabId = '') {
+    const select = document.getElementById('adminCreateUserLab');
+    if (!select) return;
+
+    if ([ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) {
+        let localLabId = localStorage.getItem('labId') || selectedLabId || '';
+        let localLabName = localStorage.getItem('labName') || 'My Lab';
+        if (!localLabId) {
+            const meRes = await fetch(`${API_URL}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const meData = await meRes.json().catch(() => ({}));
+            if (meRes.ok && meData.user) {
+                applyProfileState(meData.user);
+                localLabId = meData.user.lab?.id || meData.user.labId || localLabId;
+                localLabName = meData.user.labName || localLabName;
+            }
+        }
+        select.innerHTML = `<option value="${localLabId}">${localLabName}</option>`;
+        select.value = localLabId;
+        select.disabled = true;
+        return;
+    }
+
+    const res = await fetch(`${API_URL}/admin/labs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const labs = await res.json().catch(() => []);
+    if (!res.ok || !Array.isArray(labs)) {
+        select.innerHTML = '<option value="">Unable to load labs</option>';
+        return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = labs.map((lab) => `<option value="${lab.id}">${lab.labName}</option>`).join('');
+    if (selectedLabId) select.value = selectedLabId;
+}
+
+async function openAddLabModalFromMenu() {
+    if (loggedInRoleKey !== ROLE_KEYS.ADMIN) return;
+    ensureActionModals();
+    document.getElementById('adminCreateLabForm')?.reset();
+    document.getElementById('adminCreateLabStatus').textContent = '';
+    new bootstrap.Modal(document.getElementById('adminAddLabModal')).show();
+}
+
+async function openAddUserModalFromMenu(selectedLabId = '') {
+    if (![ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) return;
+    ensureActionModals();
+    document.getElementById('adminCreateUserForm')?.reset();
+    document.getElementById('adminCreateUserStatus').textContent = '';
+    await loadLabOptionsForUserCreation(selectedLabId);
+    new bootstrap.Modal(document.getElementById('adminAddUserModal')).show();
 }
 
 function ensureActionModals() {
@@ -2485,14 +2819,13 @@ function ensureActionModals() {
         <div class="modal fade" id="feedbackLinkNcModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header"><h5 class="modal-title">Link Feedback to NC</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header"><h5 class="modal-title">Link Feedback to NC/CAPA</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <input type="hidden" id="fbLinkId">
-                        <label class="form-label small">NC ID</label>
-                        <input id="fbLinkNcId" class="form-control form-control-sm" placeholder="Paste NC ID">
+                        <div class="small text-muted">This will auto-generate an NC record and link it to this feedback entry.</div>
                         <div id="fbLinkModalStatus" class="small text-muted mt-2"></div>
                     </div>
-                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="fbLinkSubmitBtn" class="btn btn-sm btn-primary">Link</button></div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="fbLinkSubmitBtn" class="btn btn-sm btn-primary">Generate and Link</button></div>
                 </div>
             </div>
         </div>
@@ -2523,11 +2856,52 @@ function ensureActionModals() {
                         <label class="form-label small">Full Name</label><input id="adminEditUserName" class="form-control form-control-sm mb-2">
                         <label class="form-label small">Role</label>
                         <select id="adminEditUserRole" class="form-select form-select-sm">
-                            <option>System Administrator</option><option>Laboratory Manager</option><option>Quality Officer</option><option>Laboratory Technologist</option><option>Auditor</option>
+                            <option>Administrator</option><option>Laboratory Manager</option><option>Quality Assurance Manager</option><option>Laboratory Scientist</option>
                         </select>
                         <div id="adminEditUserStatus" class="small text-muted mt-2"></div>
                     </div>
                     <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="adminEditUserSubmitBtn" class="btn btn-sm btn-primary">Save</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="adminAddLabModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Add Laboratory</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <form id="adminCreateLabForm">
+                            <label class="form-label small">Lab Name</label><input id="adminCreateLabName" class="form-control form-control-sm mb-2" required>
+                            <label class="form-label small">Lab Type</label>
+                            <select id="adminCreateLabType" class="form-select form-select-sm mb-2"><option>Private</option><option>Public</option><option>Mid-level</option></select>
+                            <label class="form-label small">Registration Number</label><input id="adminCreateLabReg" class="form-control form-control-sm mb-2">
+                            <label class="form-label small">Accreditation Status</label><input id="adminCreateLabAcc" class="form-control form-control-sm mb-2">
+                            <label class="form-label small">Address</label><textarea id="adminCreateLabAddress" rows="2" class="form-control form-control-sm"></textarea>
+                        </form>
+                        <div id="adminCreateLabStatus" class="small text-muted mt-2"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="adminCreateLabSubmitBtn" class="btn btn-sm btn-primary">Create Lab</button></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="adminAddUserModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title">Add User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <form id="adminCreateUserForm">
+                            <label class="form-label small">Lab</label>
+                            <select id="adminCreateUserLab" class="form-select form-select-sm mb-2"></select>
+                            <label class="form-label small">Full Name</label><input id="adminCreateUserName" class="form-control form-control-sm mb-2" required>
+                            <label class="form-label small">Email</label><input id="adminCreateUserEmail" type="email" class="form-control form-control-sm mb-2" required>
+                            <label class="form-label small">Password</label><input id="adminCreateUserPassword" type="password" class="form-control form-control-sm mb-2" minlength="6" required>
+                            <label class="form-label small">Role</label>
+                            <select id="adminCreateUserRole" class="form-select form-select-sm">
+                                <option>Laboratory Manager</option><option>Quality Assurance Manager</option><option>Laboratory Scientist</option>
+                            </select>
+                        </form>
+                        <div id="adminCreateUserStatus" class="small text-muted mt-2"></div>
+                    </div>
+                    <div class="modal-footer"><button class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button id="adminCreateUserSubmitBtn" class="btn btn-sm btn-primary">Create User</button></div>
                 </div>
             </div>
         </div>
@@ -2559,17 +2933,12 @@ function ensureActionModals() {
 
     document.getElementById('fbLinkSubmitBtn')?.addEventListener('click', async () => {
         const id = document.getElementById('fbLinkId').value;
-        const ncId = document.getElementById('fbLinkNcId').value.trim();
         const statusEl = document.getElementById('fbLinkModalStatus');
-        if (!ncId) {
-            statusEl.textContent = 'NC ID is required.';
-            return;
-        }
-        statusEl.textContent = 'Linking...';
+        statusEl.textContent = 'Generating NC and linking...';
         const res = await fetch(`${API_URL}/client-feedback/${id}/link-nc`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ ncId })
+            body: JSON.stringify({})
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -2623,6 +2992,56 @@ function ensureActionModals() {
         }
         bootstrap.Modal.getInstance(document.getElementById('adminEditUserModal'))?.hide();
         await loadAdminPortal();
+    });
+
+    document.getElementById('adminCreateLabSubmitBtn')?.addEventListener('click', async () => {
+        const statusEl = document.getElementById('adminCreateLabStatus');
+        statusEl.textContent = 'Creating lab...';
+        const res = await fetch(`${API_URL}/admin/labs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                labName: document.getElementById('adminCreateLabName').value.trim(),
+                labType: document.getElementById('adminCreateLabType').value,
+                registrationNumber: document.getElementById('adminCreateLabReg').value.trim(),
+                address: document.getElementById('adminCreateLabAddress').value.trim(),
+                accreditationStatus: document.getElementById('adminCreateLabAcc').value.trim()
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            statusEl.textContent = data.message || 'Failed to create lab.';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('adminAddLabModal'))?.hide();
+        if (window.location.href.includes('admin-portal.html')) {
+            await loadAdminPortal();
+        }
+    });
+
+    document.getElementById('adminCreateUserSubmitBtn')?.addEventListener('click', async () => {
+        const statusEl = document.getElementById('adminCreateUserStatus');
+        statusEl.textContent = 'Creating user...';
+        const labId = document.getElementById('adminCreateUserLab').value;
+        const res = await fetch(`${API_URL}/admin/labs/${labId}/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                fullName: document.getElementById('adminCreateUserName').value.trim(),
+                email: document.getElementById('adminCreateUserEmail').value.trim(),
+                password: document.getElementById('adminCreateUserPassword').value,
+                role: document.getElementById('adminCreateUserRole').value
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            statusEl.textContent = data.message || 'Failed to create user.';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('adminAddUserModal'))?.hide();
+        if (window.location.href.includes('admin-portal.html')) {
+            await loadAdminPortal();
+        }
     });
 }
 
@@ -2716,10 +3135,9 @@ async function loadDeptView(deptName) {
             </div>
         `).join('') || '<p class="text-muted">No equipment registered.</p>';
         
-        // 3. Permission Check for "Add Equipment" button
-        // Assuming user role is stored in localStorage or decoded from token
-        const userRole = localStorage.getItem('userRole'); 
-        if (isManagerOrAdmin()) {
+        // 3. Permission check for "Add Equipment" button
+        const canRegisterEquipment = [ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER, ROLE_KEYS.LAB_SCIENTIST].includes(loggedInRoleKey);
+        if (canRegisterEquipment) {
             document.getElementById('adminEquipmentControls').innerHTML = `
                 <button class="btn btn-sm btn-outline-success mt-3 w-100" onclick="showAddEquipModal('${deptName}')">
                     + Register New Equipment
@@ -2786,6 +3204,7 @@ document.addEventListener('submit', async (e) => {
             });
 
             if (res.ok) {
+                alert('Equipment registered successfully. Verification notification sent to Laboratory Manager and Quality Assurance Manager.');
                 // Close modal
                 const modalElement = document.getElementById('equipModal');
                 const modalInstance = bootstrap.Modal.getInstance(modalElement);
@@ -2915,6 +3334,7 @@ function applyProfileState(user) {
     if (!user) return;
     if (user.fullName) localStorage.setItem('fullName', user.fullName);
     if (user.labName) localStorage.setItem('labName', user.labName);
+    if (user.lab?.id || user.labId) localStorage.setItem('labId', user.lab?.id || user.labId);
     if (user.profilePhotoUrl) localStorage.setItem('profilePhotoUrl', user.profilePhotoUrl);
     const effectiveLastLogin = user.previousLoginAt || user.lastLoginAt || '';
     if (effectiveLastLogin) localStorage.setItem('lastLoginAt', effectiveLastLogin);
@@ -3126,40 +3546,6 @@ async function saveProfileSettings() {
     status.textContent = 'Settings saved successfully.';
 }
 
-async function promoteSelfAdmin() {
-    const status = document.getElementById('profileSettingsStatus');
-    if (status) {
-        status.className = 'alert alert-info mt-3 mb-0';
-        status.textContent = 'Requesting System Administrator access...';
-    }
-
-    const res = await fetch(`${API_URL}/auth/promote-self-admin`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-        if (status) {
-            status.className = 'alert alert-danger mt-3 mb-0';
-            status.textContent = data.message || 'Promotion failed.';
-        } else {
-            alert(data.message || 'Promotion failed.');
-        }
-        return;
-    }
-
-    if (data.user?.role) localStorage.setItem('userRole', data.user.role);
-    if (data.user?.roleKey) localStorage.setItem('roleKey', data.user.roleKey);
-    applyProfileState(data.user || {});
-
-    if (status) {
-        status.className = 'alert alert-success mt-3 mb-0';
-        status.textContent = 'You are now System Administrator. Reloading...';
-    }
-
-    setTimeout(() => window.location.reload(), 700);
-}
-
 async function initProfileMenu() {
     if (!token || window.location.href.includes('index.html')) return;
     if (document.getElementById('profileDropdownWrapper')) return;
@@ -3184,7 +3570,9 @@ async function initProfileMenu() {
             </li>
             <li><hr class="dropdown-divider"></li>
             <li><button class="dropdown-item" type="button" id="openProfileSettingsBtn">Settings</button></li>
-            <li><button class="dropdown-item d-none" type="button" id="promoteSelfAdminBtn">Become System Administrator</button></li>
+            <li><button class="dropdown-item d-none" type="button" id="adminPortalBtn">Admin Portal</button></li>
+            <li><button class="dropdown-item d-none" type="button" id="adminAddLabBtn">Add Lab</button></li>
+            <li><button class="dropdown-item d-none" type="button" id="addLabUserBtn">Add User</button></li>
             <li><button class="dropdown-item text-danger" type="button" id="profileLogoutBtn">Logout</button></li>
         </ul>
     `;
@@ -3212,9 +3600,14 @@ async function initProfileMenu() {
         await loadProfileSettings();
         new bootstrap.Modal(document.getElementById('profileSettingsModal')).show();
     });
-    document.getElementById('promoteSelfAdminBtn')?.addEventListener('click', async () => {
-        await loadProfileSettings();
-        await promoteSelfAdmin();
+    document.getElementById('adminPortalBtn')?.addEventListener('click', () => {
+        window.location.href = 'admin-portal.html';
+    });
+    document.getElementById('adminAddLabBtn')?.addEventListener('click', async () => {
+        await openAddLabModalFromMenu();
+    });
+    document.getElementById('addLabUserBtn')?.addEventListener('click', async () => {
+        await openAddUserModalFromMenu();
     });
     document.getElementById('uploadProfilePhotoBtn')?.addEventListener('click', uploadProfilePhoto);
     document.getElementById('saveProfileSettingsBtn')?.addEventListener('click', saveProfileSettings);
@@ -3225,11 +3618,15 @@ async function initProfileMenu() {
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.user) {
             applyProfileState(data.user);
-            const promoteBtn = document.getElementById('promoteSelfAdminBtn');
-            const email = String(data.user.email || '').toLowerCase();
-            const target = 'maureenrono98@gmail.com';
-            if (promoteBtn && loggedInRoleKey !== ROLE_KEYS.ADMIN && email === target) {
-                promoteBtn.classList.remove('d-none');
+            const adminPortalBtn = document.getElementById('adminPortalBtn');
+            const adminAddLabBtn = document.getElementById('adminAddLabBtn');
+            const addLabUserBtn = document.getElementById('addLabUserBtn');
+            if (loggedInRoleKey === ROLE_KEYS.ADMIN) {
+                adminPortalBtn?.classList.remove('d-none');
+                adminAddLabBtn?.classList.remove('d-none');
+                addLabUserBtn?.classList.remove('d-none');
+            } else if ([ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) {
+                addLabUserBtn?.classList.remove('d-none');
             }
         }
     } catch (error) {
@@ -3240,6 +3637,7 @@ async function initProfileMenu() {
 document.addEventListener('DOMContentLoaded', () => {
     applyRoleNavigation();
     setLabNameHeading();
+    initAdminLabViewControl();
     initRolePreviewControl();
     initProfileMenu();
 

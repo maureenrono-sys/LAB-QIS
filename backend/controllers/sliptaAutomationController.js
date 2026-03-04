@@ -73,7 +73,7 @@ exports.linkGapToCapa = async (req, res) => {
             labId: req.user.labId,
             ncId: req.body.ncId,
             actionType: 'Preventive',
-            ownerName: req.body.ownerName || 'QA Manager',
+            ownerName: req.body.ownerName || 'Quality Assurance Manager',
             dueDate: req.body.dueDate,
             details: req.body.details || `CAPA generated from SLIPTA gap item ${item.id}`
         });

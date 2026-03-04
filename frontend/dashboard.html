@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dashboard-page">
     <div id="sidebar">
         <div class="text-center pb-4 border-bottom border-secondary">
             <h4 class="text-white fw-bold">LAB-QIS</h4>
@@ -20,13 +20,11 @@
             <a href="indicators.html" class="nav-link">Quality Indicators</a>
             <a href="equipment.html" class="nav-link">Equipment Log</a>
             <a href="nc-capa.html" class="nav-link">NC & CAPA</a>
-            <a href="documents.html" class="nav-link">Documents</a>
             <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
             <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
             <a href="operations-center.html" class="nav-link">Operations Center</a>
             <a href="client-feedback.html" class="nav-link">Client Feedback</a>
-            <a href="admin-portal.html" class="nav-link">Admin Portal</a>
         </div>
     </div>
 
@@ -39,10 +37,10 @@
             <div class="dashboard-topbar-actions">
                 <select id="rolePreviewSelect" class="form-select form-select-sm role-preview-select d-none">
                     <option value="">View Dashboard As...</option>
-                    <option value="ADMIN">Admin</option>
-                    <option value="LAB_MANAGER">Lab Manager</option>
+                    <option value="ADMIN">Administrator</option>
+                    <option value="LAB_MANAGER">Laboratory Manager</option>
                     <option value="QUALITY_ASSURANCE_MANAGER">Quality Assurance Manager</option>
-                    <option value="LAB_TECHNOLOGIST">Lab Technologist</option>
+                    <option value="LAB_SCIENTIST">Laboratory Scientist</option>
                 </select>
                 <span id="roleBadge" class="badge bg-primary"></span>
                 <button id="notifBellBtn" class="btn btn-sm notif-bell-btn position-relative" type="button" onclick="toggleNotifSidebar()" aria-label="Open notifications">
@@ -60,18 +58,51 @@
             </div>
         </div>
 
-        <div id="dashboardRoleHero" class="mt-2"></div>
-        <div id="statsRow" class="row g-3"></div>
-        <div id="opsAlertRow" class="row g-3 mt-1"></div>
-        <div id="enterprisePulseRow" class="row g-3 mt-1"></div>
-        <div id="capaReviewRow" class="mt-2"></div>
+        <section class="dashboard-section">
+            <div class="dashboard-section-head">
+                <h5 class="mb-0">Role Snapshot</h5>
+                <p class="mb-0 text-muted small">Your current role context and immediate priorities.</p>
+            </div>
+            <div id="dashboardRoleHero" class="mt-3"></div>
+            <div id="statsRow" class="row g-4 mt-1"></div>
+        </section>
 
-        <div id="contentArea" class="mt-4 p-4 bg-white rounded shadow-sm min-vh-100">
+        <section class="dashboard-section">
+            <div class="dashboard-section-head">
+                <h5 class="mb-0">Operational Alerts</h5>
+                <p class="mb-0 text-muted small">Critical updates from quality, documents, risks, and equipment.</p>
+            </div>
+            <div id="opsAlertRow" class="row g-4 mt-1"></div>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="dashboard-section-head">
+                <h5 class="mb-0">Enterprise Pulse</h5>
+                <p class="mb-0 text-muted small">Cross-functional indicators and trend highlights.</p>
+            </div>
+            <div id="enterprisePulseRow" class="row g-4 mt-1"></div>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="dashboard-section-head">
+                <h5 class="mb-0">CAPA Review</h5>
+                <p class="mb-0 text-muted small">Open and overdue corrective-action focus areas.</p>
+            </div>
+            <div id="capaReviewRow" class="mt-3"></div>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="dashboard-section-head">
+                <h5 class="mb-0">Workspace</h5>
+                <p class="mb-0 text-muted small">Module details and drill-down content.</p>
+            </div>
+            <div id="contentArea" class="mt-3 p-4 bg-white rounded shadow-sm min-vh-100">
             <div class="text-center text-muted py-5">
                 <h4>Laboratory Quality Information System</h4>
                 <p>Lab-QIS is a Quality Intelligence System for clinical laboratories that turns raw lab data into compliance-ready insights. It provides real-time monitoring of quality indicators, turnaround times, and non-conformities/CAPA, with dashboards and departmental views aligned to ISO 15189:2022.</p>
             </div>
-        </div>
+            </div>
+        </section>
     </div>
 
     <div id="notifSidebar" class="bg-light shadow" style="position: fixed; top: 0; right: -400px; width: 400px; height: 100vh; transition: 0.3s; overflow-y: auto;">

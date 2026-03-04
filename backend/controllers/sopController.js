@@ -50,7 +50,7 @@ exports.submitForApproval = async (req, res) => {
         await sop.update({ status: 'Under Review' });
         await SopApproval.create({
             sopVersionId: req.body.sopVersionId,
-            approverName: req.body.approverName || 'Lab Manager',
+            approverName: req.body.approverName || 'Laboratory Manager',
             stepOrder: req.body.stepOrder || 1
         });
 

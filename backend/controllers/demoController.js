@@ -33,28 +33,28 @@ exports.bootstrapDemoData = async (req, res) => {
             fullName: 'Demo Administrator',
             email: 'admin@labqis.demo',
             password: 'Admin@123',
-            role: 'System Administrator',
+            role: 'Administrator',
             labId: lab.id
         });
         await ensureUser({
-            fullName: 'Demo Lab Manager',
+            fullName: 'Demo Laboratory Manager',
             email: 'manager@labqis.demo',
             password: 'Admin@123',
             role: 'Laboratory Manager',
             labId: lab.id
         });
         await ensureUser({
-            fullName: 'Demo Quality Officer',
+            fullName: 'Demo Quality Assurance Manager',
             email: 'qa@labqis.demo',
             password: 'Admin@123',
-            role: 'Quality Officer',
+            role: 'Quality Assurance Manager',
             labId: lab.id
         });
         await ensureUser({
             fullName: 'Demo Technologist',
             email: 'tech@labqis.demo',
             password: 'Admin@123',
-            role: 'Laboratory Technologist',
+            role: 'Laboratory Scientist',
             labId: lab.id
         });
 
@@ -160,8 +160,8 @@ exports.bootstrapDemoData = async (req, res) => {
             login: {
                 admin: { email: 'admin@labqis.demo', password: 'Admin@123' },
                 manager: { email: 'manager@labqis.demo', password: 'Admin@123' },
-                qualityOfficer: { email: 'qa@labqis.demo', password: 'Admin@123' },
-                labTechnologist: { email: 'tech@labqis.demo', password: 'Admin@123' }
+                qualityAssuranceManager: { email: 'qa@labqis.demo', password: 'Admin@123' },
+                laboratoryScientist: { email: 'tech@labqis.demo', password: 'Admin@123' }
             }
         });
     } catch (error) {

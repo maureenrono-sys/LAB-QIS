@@ -9,7 +9,7 @@ const {
 } = require('../controllers/sliptaAutomationController');
 
 router.post('/assessments', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), createAssessment);
-router.get('/assessments/:id', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_TECHNOLOGIST'), getAssessment);
+router.get('/assessments/:id', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getAssessment);
 router.post('/gaps/:itemId/link-capa', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), linkGapToCapa);
 
 module.exports = router;

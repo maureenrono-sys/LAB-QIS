@@ -28,7 +28,7 @@ test('authorizeRoleKeys allows permitted role', () => {
 
 test('authorizeRoleKeys denies disallowed role', () => {
     const middleware = authorizeRoleKeys('ADMIN');
-    const req = { user: { role: 'Laboratory Technologist' } };
+    const req = { user: { role: 'Laboratory Scientist' } };
     const res = mockRes();
     let nextCalled = false;
     middleware(req, res, () => { nextCalled = true; });

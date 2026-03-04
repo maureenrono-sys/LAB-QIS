@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Laboratory } = require('../models');
+const { getRoleKey, ROLE_KEYS } = require('../constants/roles');
 
 const protect = async (req, res, next) => {
     let token;
@@ -17,6 +18,22 @@ const protect = async (req, res, next) => {
             req.user = await User.findByPk(decoded.id, {
                 attributes: { exclude: ['password'] }
             });
+            if (!req.user) {
+                return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+
+            const requestedLabId = String(req.headers['x-lab-context'] || '').trim();
+            if (requestedLabId && getRoleKey(req.user.role) === ROLE_KEYS.ADMIN) {
+                const targetLab = await Laboratory.findByPk(requestedLabId, {
+                    attributes: ['id', 'labName']
+                });
+                if (!targetLab) {
+                    return res.status(400).json({ message: 'Invalid lab context provided.' });
+                }
+                req.user.originalLabId = req.user.labId;
+                req.user.labId = targetLab.id;
+                req.user.labContextName = targetLab.labName;
+            }
 
             next();
         } catch (error) {

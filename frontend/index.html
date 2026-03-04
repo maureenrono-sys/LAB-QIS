@@ -3,143 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auth | Lab-QIS</title>
+    <title>Login | Lab-QIS Intelligence</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        .auth-shell {
-            min-height: 100vh;
+        :root {
+            --primary-navy: #0f2d52;
+            --medical-teal: #0f766e;
+            --accent-cyan: #0ea5e9;
+            --bg-light: #eef4f8;
+            --ink: #1f2937;
+            --muted: #64748b;
+        }
+
+        body {
             background:
-                radial-gradient(circle at 10% 10%, rgba(123, 44, 191, 0.25), transparent 45%),
-                radial-gradient(circle at 90% 90%, rgba(20, 184, 166, 0.18), transparent 40%),
-                #f6f4ff;
+                radial-gradient(circle at 12% 10%, rgba(14, 165, 233, 0.14), transparent 34%),
+                radial-gradient(circle at 88% 92%, rgba(15, 118, 110, 0.12), transparent 30%),
+                var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            color: var(--ink);
+        }
+
+        .auth-container {
+            min-height: 100vh;
+        }
+
+        .brand-side {
+            background: linear-gradient(135deg, var(--primary-navy) 0%, #001f3f 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4.25rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-side::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 25%, rgba(14, 165, 233, 0.22), transparent 36%),
+                radial-gradient(circle at 78% 78%, rgba(15, 118, 110, 0.2), transparent 40%);
+            opacity: 0.9;
+        }
+
+        .form-side {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
         }
 
         .auth-card {
             width: 100%;
-            max-width: 560px;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.94);
+            padding: 2.5rem;
+            border-radius: 16px;
+            border: 1px solid #d9e3ec;
+            box-shadow: 0 14px 36px rgba(15, 45, 82, 0.12);
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-navy), #1f4c7a);
             border: 0;
-            border-radius: 18px;
-            box-shadow: 0 16px 36px rgba(64, 31, 110, 0.18);
-        }
-
-        .auth-toggle .btn {
-            border-radius: 999px;
-            min-width: 140px;
-        }
-
-        .form-note {
-            font-size: 0.85rem;
-            color: #6b7280;
-        }
-
-        .auth-card h2 {
-            letter-spacing: 0.02em;
-        }
-
-        .auth-card .form-label {
-            font-weight: 600;
-            color: #4b5563;
-        }
-
-        .auth-card .form-control,
-        .auth-card .form-select {
+            padding: 0.78rem;
+            font-weight: 700;
             border-radius: 10px;
-            border: 1px solid #dfd4ff;
-            background: #fbfaff;
+            letter-spacing: 0.01em;
+            box-shadow: 0 10px 20px rgba(15, 45, 82, 0.24);
         }
 
-        .auth-card .form-control:focus,
-        .auth-card .form-select:focus {
-            border-color: #5d3fd3;
-            box-shadow: 0 0 0 0.2rem rgba(93, 63, 211, 0.18);
-            background: #ffffff;
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #15416f, #225b91);
+            transform: translateY(-1px);
         }
 
-        #demoAdminBtn {
+        .btn-primary:focus {
+            box-shadow: 0 0 0 0.22rem rgba(15, 45, 82, 0.25);
+        }
+
+        .btn-outline-primary {
+            color: var(--medical-teal);
+            border-color: #6bb4ac;
             border-radius: 10px;
-            border-color: #b9a8f1;
-            color: #5d3fd3;
+            background: #f7fbfa;
             font-weight: 600;
         }
 
-        #demoAdminBtn:hover,
-        #demoAdminBtn:focus {
-            background: #5d3fd3;
-            border-color: #5d3fd3;
+        .btn-outline-primary:hover {
             color: #ffffff;
+            background: var(--medical-teal);
+            border-color: var(--medical-teal);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.14);
+        }
+
+        .system-status {
+            position: absolute;
+            bottom: 2rem;
+            left: 4rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.9;
+        }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .version-badge {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            font-size: 0.7rem;
+            color: #7b8794;
+        }
+
+        .text-teal { color: var(--medical-teal); }
+        .text-navy { color: var(--primary-navy); }
+
+        .auth-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #0f766e;
+            background: #ecfdf5;
+            border: 1px solid #bbf7d0;
+            border-radius: 999px;
+            padding: 0.35rem 0.62rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .trust-list {
+            display: grid;
+            gap: 0.45rem;
+            margin-top: 1rem;
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        @media (max-width: 768px) {
+            .brand-side { display: none; }
         }
     </style>
 </head>
 <body>
-    <main class="auth-shell d-flex align-items-center justify-content-center p-3">
-        <section class="card auth-card card-clinical p-4 p-md-5">
-            <div class="text-center mb-4">
-                <h2 class="text-navy fw-bold mb-1">LAB-QIS</h2>
-                <p class="text-muted mb-0">Quality Intelligence System</p>
+    <div class="row g-0 auth-container">
+        <div class="col-lg-6 brand-side">
+            <div style="position: relative; z-index: 2;">
+                <h1 class="display-4 fw-bold mb-3">LAB-QIS</h1>
+                <h4 class="text-teal mb-4">Quality Intelligence System</h4>
+                <p class="lead opacity-75 mb-5">
+                    Empowering medical laboratories with real-time quality assurance,
+                    ISO 15189 compliance tracking, and data-driven insights.
+                </p>
+
+                <div class="d-flex gap-4 mt-5">
+                    <div class="text-center">
+                        <h3 class="mb-0">ISO</h3>
+                        <small class="opacity-50">15189 Ready</small>
+                    </div>
+                    <div class="vr"></div>
+                    <div class="text-center">
+                        <h3 class="mb-0">SLIPTA</h3>
+                        <small class="opacity-50">Compliant</small>
+                    </div>
+                </div>
             </div>
 
-            <div class="auth-toggle d-flex justify-content-center gap-2 mb-4">
-                <button id="showLoginBtn" type="button" class="btn btn-primary btn-sm">Sign In</button>
-                <button id="showSignupBtn" type="button" class="btn btn-outline-primary btn-sm">Sign Up</button>
+            <div class="system-status">
+                <div class="pulse-dot"></div>
+                <span>Intelligence Engine: <strong>Optimized</strong></span>
             </div>
+        </div>
 
-            <form id="loginForm">
-                <div class="mb-3">
-                    <label class="form-label">Email</label>
-                    <input type="email" id="loginEmail" class="form-control" required>
+        <div class="col-lg-6 form-side">
+            <section class="auth-card">
+                <div class="text-center d-lg-none mb-4">
+                    <h2 class="fw-bold text-navy">LAB-QIS</h2>
+                    <p class="text-muted">Quality Intelligence System</p>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password" id="loginPassword" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 bg-med-blue">Access Laboratory</button>
-                <button id="demoAdminBtn" type="button" class="btn btn-outline-primary w-100 mt-2">Setup Demo + Login as Admin</button>
-            </form>
 
-            <form id="signupForm" class="d-none">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" id="signupName" class="form-control" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Role</label>
-                        <select id="signupRole" class="form-select" required>
-                            <option value="ADMIN">Admin</option>
-                            <option value="LAB_MANAGER">Lab Manager</option>
-                            <option value="QUALITY_ASSURANCE_MANAGER">Quality Manager</option>
-                            <option value="LAB_TECHNOLOGIST">Lab Technologist</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Email</label>
-                        <input type="email" id="signupEmail" class="form-control" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Password</label>
-                        <input type="password" id="signupPassword" class="form-control" minlength="6" required>
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label">Laboratory Name</label>
-                        <input type="text" id="signupLabName" class="form-control" placeholder="e.g. Central Diagnostic Laboratory" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Lab Type</label>
-                        <select id="signupLabType" class="form-select">
-                            <option value="Private">Private</option>
-                            <option value="Public">Public</option>
-                            <option value="Mid-level">Mid-level</option>
-                        </select>
-                    </div>
-                </div>
-                <p class="form-note mt-3 mb-2">Sign up creates your account and signs you in immediately.</p>
-                <button type="submit" class="btn btn-primary w-100">Create Account</button>
-            </form>
+                <span class="auth-kicker"><i class="bi bi-shield-check"></i> Secure Access</span>
+                <h4 class="fw-bold mb-2 text-navy">Sign In To Your Lab Workspace</h4>
+                <p class="text-muted small mb-3">Use your assigned credentials.</p>
 
-            <div id="message" class="mt-3 text-center text-danger small"></div>
-        </section>
-    </main>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Professional Email</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="name@lab.com" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold">Security Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Enter Secure Dashboard
+                    </button>
+                    <button id="demoAdminBtn" type="button" class="btn btn-outline-primary w-100 border-0 small text-decoration-underline">
+                        Launch Demo Workspace
+                    </button>
+                </form>
+
+                <div class="trust-list">
+                    <div><i class="bi bi-check2-circle me-2 text-teal"></i>ISO 15189 aligned workflow monitoring</div>
+                    <div><i class="bi bi-check2-circle me-2 text-teal"></i>Role-based access and audit-ready records</div>
+                </div>
+
+                <div id="message" class="mt-4 text-center text-danger small fw-bold"></div>
+                <div class="version-badge">v2.1.0-Compliance-Stable</div>
+            </section>
+        </div>
+    </div>
 
     <script>
         const API_CANDIDATES = [
@@ -147,10 +248,7 @@
             'http://127.0.0.1:5000/api'
         ];
         const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
         const messageEl = document.getElementById('message');
-        const showLoginBtn = document.getElementById('showLoginBtn');
-        const showSignupBtn = document.getElementById('showSignupBtn');
 
         async function fetchWithApiFallback(path, options) {
             let lastError = null;
@@ -170,11 +268,14 @@
             localStorage.setItem('userRole', data.user.role);
             localStorage.setItem('roleKey', data.user.roleKey || '');
             localStorage.setItem('labName', data.user.labName || '');
+            localStorage.setItem('labId', data.user.lab?.id || data.user.labId || '');
             localStorage.setItem('fullName', data.user.fullName || '');
             localStorage.setItem('profilePhotoUrl', data.user.profilePhotoUrl || '');
             localStorage.setItem('lastLoginAt', data.user.lastLoginAt || '');
             localStorage.setItem('isDemoMode', isDemo ? 'true' : 'false');
             localStorage.removeItem('viewRoleKey');
+            localStorage.removeItem('adminViewLabId');
+            localStorage.removeItem('adminViewLabName');
         }
 
         async function loginWithCredentials(email, password, options = {}) {
@@ -191,19 +292,6 @@
             window.location.href = 'dashboard.html';
         }
 
-        function setAuthView(showSignup) {
-            signupForm.classList.toggle('d-none', !showSignup);
-            loginForm.classList.toggle('d-none', showSignup);
-            showSignupBtn.classList.toggle('btn-primary', showSignup);
-            showSignupBtn.classList.toggle('btn-outline-primary', !showSignup);
-            showLoginBtn.classList.toggle('btn-primary', !showSignup);
-            showLoginBtn.classList.toggle('btn-outline-primary', showSignup);
-            messageEl.textContent = '';
-        }
-
-        showLoginBtn.addEventListener('click', () => setAuthView(false));
-        showSignupBtn.addEventListener('click', () => setAuthView(true));
-
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -212,42 +300,13 @@
                     document.getElementById('loginPassword').value
                 );
             } catch (err) {
-                messageEl.textContent = err.message || 'Unable to reach server. Confirm backend is running on port 5000.';
-            }
-        });
-
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const payload = {
-                    fullName: document.getElementById('signupName').value.trim(),
-                    email: document.getElementById('signupEmail').value.trim(),
-                    password: document.getElementById('signupPassword').value,
-                    roleKey: document.getElementById('signupRole').value,
-                    labName: document.getElementById('signupLabName').value.trim(),
-                    labType: document.getElementById('signupLabType').value
-                };
-
-                const response = await fetchWithApiFallback('/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    throw new Error(data.message || 'Signup failed.');
-                }
-
-                persistSession(data, { isDemo: false });
-                window.location.href = 'dashboard.html';
-            } catch (err) {
-                messageEl.textContent = err.message || 'Unable to create account.';
+                messageEl.textContent = err.message || 'Unable to reach server. Confirm backend is running.';
             }
         });
 
         document.getElementById('demoAdminBtn').addEventListener('click', async () => {
             try {
-                messageEl.textContent = 'Preparing demo data...';
+                messageEl.textContent = 'Initializing secure demo environment...';
                 const seedResponse = await fetchWithApiFallback('/auth/demo-bootstrap', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
