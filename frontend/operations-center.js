@@ -36,7 +36,15 @@ async function opsRequest(path, options = {}) {
 function setOpsStatus(message, type = 'light') {
     const el = document.getElementById('opsStatus');
     if (!el) return;
-    el.className = `alert alert-${type} mt-3 mb-0`;
+    const typeMap = {
+        light: 'info',
+        info: 'info',
+        success: 'success',
+        warning: 'warning',
+        danger: 'danger'
+    };
+    const uiType = typeMap[type] || 'info';
+    el.className = `status-card status-${uiType} mt-3 mb-0`;
     el.textContent = message;
 }
 
@@ -373,6 +381,40 @@ function bindSopForms() {
     });
 
     document.getElementById('refreshSopMetricsBtn')?.addEventListener('click', refreshSopMetrics);
+}
+
+function bindSopStepperNav() {
+    document.querySelectorAll('.ops-step-item[data-step-target]').forEach((stepBtn) => {
+        stepBtn.addEventListener('click', () => {
+            const targetSel = stepBtn.getAttribute('data-step-target');
+            const actionSel = stepBtn.getAttribute('data-step-action');
+            const target = targetSel ? document.querySelector(targetSel) : null;
+            const actionBtn = actionSel ? document.querySelector(actionSel) : null;
+            const targetPanel = target ? target.closest('.sop-step-panel') : null;
+
+            document.querySelectorAll('.ops-step-item[data-step-target]').forEach((btn) => {
+                btn.classList.toggle('active', btn === stepBtn);
+            });
+
+            if (targetPanel) {
+                document.querySelectorAll('.sop-step-panel').forEach((panel) => {
+                    panel.classList.add('d-none');
+                });
+                targetPanel.classList.remove('d-none');
+            }
+
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            if (actionBtn) {
+                actionBtn.classList.remove('step-target-pulse');
+                void actionBtn.offsetWidth;
+                actionBtn.classList.add('step-target-pulse');
+                setTimeout(() => actionBtn.classList.remove('step-target-pulse'), 1600);
+            }
+        });
+    });
 }
 
 function bindStaffForms() {
@@ -769,10 +811,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const roleKey = resolveRoleKey();
     const badge = document.getElementById('opsRoleBadge');
-    if (badge) badge.textContent = roleKey || 'Unknown';
+    if (badge) {
+        const roleLabelMap = {
+            ADMIN: 'Administrator',
+            LAB_MANAGER: 'Laboratory Manager',
+            QUALITY_ASSURANCE_MANAGER: 'Quality Assurance Manager',
+            LAB_SCIENTIST: 'Laboratory Scientist'
+        };
+        badge.textContent = roleLabelMap[roleKey] || 'User';
+        badge.className = roleKey === 'QUALITY_ASSURANCE_MANAGER'
+            ? 'badge bg-info text-dark'
+            : 'badge bg-primary';
+    }
 
-    if (!['ADMIN', 'LAB_MANAGER'].includes(roleKey)) {
-        document.getElementById('accessGuard').innerHTML = '<div class="alert alert-danger">Access denied: Operations Center is currently available to Administrator and Laboratory Manager only.</div>';
+    if (!['ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'].includes(roleKey)) {
+        document.getElementById('accessGuard').innerHTML = '<div class="status-card status-danger">Access denied: Operations Center is currently available to Administrator, Laboratory Manager, and Quality Assurance Manager only.</div>';
         return;
     }
 
@@ -780,6 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
     enableOpsSectionCollapsible();
     bindSystemLogButtons();
     bindSopForms();
+    bindSopStepperNav();
     bindStaffForms();
     bindRiskForms();
     bindAutomationForms();

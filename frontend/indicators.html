@@ -7,8 +7,20 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .qi-chart-shell {
+            position: relative;
+            height: 240px;
+        }
+
+        @media (max-width: 768px) {
+            .qi-chart-shell {
+                height: 200px;
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="indicators-page">
     <div id="sidebar">
         <div class="text-center pb-4 border-bottom border-secondary">
             <h4 class="text-white fw-bold">LAB-QIS</h4>
@@ -22,14 +34,19 @@
             <a href="nc-capa.html" class="nav-link">NC & CAPA</a>            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
             <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
-            <a href="operations-center.html" class="nav-link">Operations Center</a>
-            <a href="client-feedback.html" class="nav-link">Client Feedback</a>        </div>
+            <a href="client-feedback.html" class="nav-link">Client Feedback</a>
+            <a href="operations-center.html" class="nav-link">Operations Center</a>        </div>
     </div>
 
     <div class="main-content-area">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 module-hero">
             <h3 class="fw-bold text-navy mb-0">Laboratory Quality Indicators</h3>
             <button id="refreshIndicatorsBtn" class="btn btn-outline-primary btn-sm">Refresh Indicators</button>
+        </div>
+
+        <div class="module-guide-card p-3 mb-3">
+            <div class="guide-title">Indicator Guidance</div>
+            <p class="guide-text">Capture monthly indicator performance, compare against targets, and use the charts below to spot risk trends quickly.</p>
         </div>
 
         <div class="card card-clinical p-3 mb-4">
@@ -58,23 +75,27 @@
                     <button type="submit" class="btn btn-success">Save</button>
                 </div>
             </form>
-            <div id="qiStatus" class="small text-muted mt-2"></div>
+            <div id="qiStatus" class="status-card status-info small mt-2">Ready.</div>
         </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="card card-clinical p-4 shadow-sm">
                     <h5 class="fw-bold"><i class="bi bi-bar-chart"></i> Actual Performance</h5>
-                    <p class="small text-muted mb-3">Latest values from <code>GET /api/qi</code></p>
-                    <canvas id="actualChart"></canvas>
+                    <p class="small text-muted mb-3">Latest indicator values by area of laboratory workflow.</p>
+                    <div class="qi-chart-shell">
+                        <canvas id="actualChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-12">
                 <div class="card card-clinical p-4 shadow-sm">
                     <h5 class="fw-bold"><i class="bi bi-bullseye"></i> Target vs Actual</h5>
                     <p class="small text-muted mb-3">Target threshold from each indicator record</p>
-                    <canvas id="targetChart"></canvas>
+                    <div class="qi-chart-shell">
+                        <canvas id="targetChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -149,10 +170,16 @@
                     datasets: [{
                         label: 'Actual %',
                         data: actual,
-                        backgroundColor: '#3498db'
+                        backgroundColor: 'rgba(93, 63, 211, 0.72)',
+                        borderColor: '#5d3fd3',
+                        borderWidth: 1
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: true }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, max: 100 } }
+                }
             });
 
             targetChart = new Chart(document.getElementById('targetChart'), {
@@ -163,20 +190,23 @@
                             type: 'bar',
                             label: 'Actual %',
                             data: actual,
-                            backgroundColor: 'rgba(26, 188, 156, 0.65)'
+                            backgroundColor: 'rgba(20, 184, 166, 0.64)',
+                            borderColor: '#14b8a6',
+                            borderWidth: 1
                         },
                         {
                             type: 'line',
                             label: 'Target %',
                             data: target,
-                            borderColor: '#e67e22',
-                            borderWidth: 2
+                            borderColor: '#5d3fd3',
+                            borderWidth: 3,
+                            tension: 0.3
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: { beginAtZero: true, max: 100 }
                     }
@@ -185,24 +215,28 @@
         }
 
         async function loadIndicators() {
+            qiStatus.className = 'status-card status-info small mt-2';
             qiStatus.textContent = 'Loading indicators...';
             const res = await fetch(`${API_URL}/qi`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (!res.ok) {
-                qiStatus.textContent = 'Could not load indicators from API.';
+                qiStatus.className = 'status-card status-danger small mt-2';
+                qiStatus.textContent = 'Could not load indicators from server.';
                 return;
             }
 
             const records = await res.json();
             renderTable(records);
             renderCharts(records);
+            qiStatus.className = 'status-card status-success small mt-2';
             qiStatus.textContent = `${records.length} indicator record(s) loaded.`;
         }
 
         async function addIndicator(e) {
             e.preventDefault();
+            qiStatus.className = 'status-card status-info small mt-2';
             qiStatus.textContent = 'Saving indicator...';
 
             const payload = {
@@ -225,12 +259,14 @@
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({ message: 'Failed to save indicator.' }));
+                qiStatus.className = 'status-card status-danger small mt-2';
                 qiStatus.textContent = err.message || 'Failed to save indicator.';
                 return;
             }
 
             document.getElementById('qiForm').reset();
-            qiStatus.textContent = 'Indicator saved.';
+            qiStatus.className = 'status-card status-success small mt-2';
+            qiStatus.textContent = 'Indicator saved successfully.';
             await loadIndicators();
         }
 

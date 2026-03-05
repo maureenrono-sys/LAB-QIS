@@ -516,9 +516,9 @@ function renderDashboardByRole(data) {
 
     if (!statsRow) return;
 
-    const roleTitle = ROLE_LABEL_BY_KEY[currentRoleKey] || 'User';
+    const fullName = localStorage.getItem('fullName') || 'User';
     if (labNameDisplay) {
-        labNameDisplay.textContent = `${localStorage.getItem('labName') || 'Welcome'} - ${roleTitle}`;
+        labNameDisplay.textContent = `Welcome, ${fullName}`;
     }
 
     const dashboardConfigByRole = {
@@ -531,7 +531,7 @@ function renderDashboardByRole(data) {
                 { href: 'audits.html', label: 'Audit Oversight', btn: 'btn-warning' },
                 { href: 'documents.html', label: 'Document Control', btn: 'btn-success' },
                 { href: 'equipment.html', label: 'Equipment Governance', btn: 'btn-sidebar-primary' },
-                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-outline-dark' }
+                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-ops-center' }
             ]
         },
         [ROLE_KEYS.LAB_MANAGER]: {
@@ -543,7 +543,7 @@ function renderDashboardByRole(data) {
                 { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-warning' },
                 { href: 'documents.html', label: 'Approve SOPs', btn: 'btn-success' },
                 { href: 'equipment.html', label: 'Equipment Planning', btn: 'btn-sidebar-primary' },
-                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-outline-dark' }
+                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-ops-center' }
             ]
         },
         [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: {
@@ -554,7 +554,8 @@ function renderDashboardByRole(data) {
                 { href: 'qc.html', label: 'Monitor IQC', btn: 'btn-primary' },
                 { href: 'nc-capa.html', label: 'NC & CAPA Tracker', btn: 'btn-warning' },
                 { href: 'benchmarking.html', label: 'Peer Benchmarking', btn: 'btn-sidebar-primary' },
-                { href: 'documents.html', label: 'Controlled Documents', btn: 'btn-success' }
+                { href: 'documents.html', label: 'Controlled Documents', btn: 'btn-success' },
+                { href: 'operations-center.html', label: 'Operations Center', btn: 'btn-ops-center' }
             ]
         },
         [ROLE_KEYS.LAB_SCIENTIST]: {
@@ -578,7 +579,7 @@ function renderDashboardByRole(data) {
     if (dashboardRoleHero) {
         dashboardRoleHero.innerHTML = `
             <div class="card card-clinical p-3 mb-2">
-                <h4 class="mb-1 text-navy">${dashboardConfig.roleName} Dashboard</h4>
+                <h4 class="mb-1 text-navy">Operational Dashboard</h4>
                 <p class="text-muted mb-2">${dashboardConfig.subtitle}</p>
                 <div class="d-flex flex-wrap gap-2">
                     ${actionButtons}
@@ -651,7 +652,7 @@ function applyRoleNavigation() {
         ]),
         [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html', 'equipment.html',
-            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html', 'benchmarking.html', 'client-feedback.html'
+            'nc-capa.html', 'documents.html', 'audits.html', 'analytics.html', 'benchmarking.html', 'operations-center.html', 'client-feedback.html'
         ]),
         [ROLE_KEYS.LAB_SCIENTIST]: new Set([
             'dashboard.html', 'departments.html', 'qc.html', 'indicators.html',
@@ -1195,19 +1196,12 @@ async function loadNC() {
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body py-3">
                 <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-                    <div class="d-flex gap-2 flex-wrap">
-                        <span class="badge text-bg-light border">Total: <span id="ncCountTotal">0</span></span>
-                        <span class="badge text-bg-light border">Open: <span id="ncCountOpen">0</span></span>
-                        <span class="badge text-bg-light border">In Progress: <span id="ncCountInProgress">0</span></span>
-                        <span class="badge text-bg-light border">Verified: <span id="ncCountVerified">0</span></span>
-                        <span class="badge text-bg-light border">Closed: <span id="ncCountClosed">0</span></span>
-                    </div>
-                    <div class="btn-group btn-group-sm" role="group" aria-label="NC status filters">
-                        <button type="button" class="btn btn-outline-secondary" data-nc-filter="ALL">All</button>
-                        <button type="button" class="btn btn-outline-danger" data-nc-filter="Open">Open</button>
-                        <button type="button" class="btn btn-outline-warning" data-nc-filter="In Progress">In Progress</button>
-                        <button type="button" class="btn btn-outline-info" data-nc-filter="Verified">Verified</button>
-                        <button type="button" class="btn btn-outline-success" data-nc-filter="Closed">Closed</button>
+                    <div class="d-flex gap-2 flex-wrap" role="group" aria-label="NC status filters">
+                        <button type="button" class="btn btn-sm nc-filter-chip nc-filter-all" data-nc-filter="ALL">Total: <span id="ncCountTotal">0</span></button>
+                        <button type="button" class="btn btn-sm nc-filter-chip nc-filter-open" data-nc-filter="Open">Open: <span id="ncCountOpen">0</span></button>
+                        <button type="button" class="btn btn-sm nc-filter-chip nc-filter-progress" data-nc-filter="In Progress">In Progress: <span id="ncCountInProgress">0</span></button>
+                        <button type="button" class="btn btn-sm nc-filter-chip nc-filter-verified" data-nc-filter="Verified">Verified: <span id="ncCountVerified">0</span></button>
+                        <button type="button" class="btn btn-sm nc-filter-chip nc-filter-closed" data-nc-filter="Closed">Closed: <span id="ncCountClosed">0</span></button>
                     </div>
                 </div>
                 <div class="small text-muted mt-2">Closed NC records are retained for audit history and can be tracked using the status filters.</div>
@@ -1305,7 +1299,7 @@ async function loadNC() {
         }));
 
         return `
-            <div class="col-md-6 mb-3">
+            <div class="col-12 col-md-6 col-lg-4 mb-3">
                 <div class="card nc-capa-card border-start border-4 ${getSeverityColor(nc.severity)} shadow-sm">
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
@@ -1341,16 +1335,19 @@ async function loadNC() {
         }
     };
 
+    const updateNcFilterUi = () => {
+        document.querySelectorAll('[data-nc-filter]').forEach((btn) => {
+            btn.classList.toggle('active', btn.getAttribute('data-nc-filter') === ncStatusFilter);
+        });
+    };
+
     document.querySelectorAll('[data-nc-filter]').forEach((btn) => {
-        if (btn.getAttribute('data-nc-filter') === ncStatusFilter) {
-            btn.classList.remove('btn-outline-secondary', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-info', 'btn-outline-success');
-            btn.classList.add('btn-primary');
-        }
         btn.addEventListener('click', () => {
             ncStatusFilter = btn.getAttribute('data-nc-filter') || 'ALL';
             loadNC();
         });
     });
+    updateNcFilterUi();
 
     renderNcCards();
 
@@ -1871,17 +1868,31 @@ function showGlobalAlertToast(title, message, variant = 'warning') {
 
     const container = ensureGlobalToastContainer();
     const toastEl = document.createElement('div');
-    toastEl.className = `toast text-bg-${variant} border-0`;
+    toastEl.className = 'toast lab-toast';
     toastEl.setAttribute('role', 'alert');
     toastEl.setAttribute('aria-live', 'assertive');
     toastEl.setAttribute('aria-atomic', 'true');
 
+    const iconByVariant = {
+        success: 'bi-check-circle-fill',
+        danger: 'bi-exclamation-octagon-fill',
+        warning: 'bi-exclamation-triangle-fill',
+        info: 'bi-info-circle-fill'
+    };
+    const icon = iconByVariant[variant] || 'bi-bell-fill';
+    const timestamp = new Date().toLocaleTimeString();
+
     toastEl.innerHTML = `
-        <div class="d-flex">
+        <div class="toast-header">
+            <i class="bi ${icon} me-2 text-${variant}"></i>
+            <strong class="me-auto">${title}</strong>
+            <small class="text-muted">${timestamp}</small>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="d-flex align-items-start">
             <div class="toast-body">
-                <strong>${title}</strong><br>${message}
+                ${message}
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
 
@@ -1890,6 +1901,17 @@ function showGlobalAlertToast(title, message, variant = 'warning') {
     toast.show();
     toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
 }
+
+function notifyUser(message, options = {}) {
+    const { title = 'Notice', variant = 'info' } = options;
+    if (typeof bootstrap === 'undefined') {
+        window.console?.log?.(`${title}: ${message}`);
+        return;
+    }
+    showGlobalAlertToast(title, String(message || ''), variant);
+}
+
+window.alert = (message) => notifyUser(message, { title: 'System Message', variant: 'warning' });
 
 function isSameLocalDate(dateA, dateB) {
     return dateA.getFullYear() === dateB.getFullYear()
@@ -2027,7 +2049,10 @@ document.addEventListener('submit', async (e) => {
     if (e.target.id === 'sliptaForm') {
         e.preventDefault();
         if (![ROLE_KEYS.ADMIN, ROLE_KEYS.LAB_MANAGER, ROLE_KEYS.QUALITY_ASSURANCE_MANAGER].includes(loggedInRoleKey)) {
-            alert('Read-only mode: Laboratory Scientist cannot submit audits.');
+            notifyUser('Read-only mode: Laboratory Scientist cannot submit audits.', {
+                title: 'Access Restricted',
+                variant: 'warning'
+            });
             return;
         }
         
@@ -2064,7 +2089,10 @@ document.addEventListener('submit', async (e) => {
             const suffix = autoNcCount > 0
                 ? ` ${autoNcCount} NC record(s) were auto-created from zero-score findings.`
                 : '';
-            alert(`Audit Completed Successfully!${suffix}`);
+            notifyUser(`Audit completed successfully.${suffix}`, {
+                title: 'SLIPTA Audit Saved',
+                variant: 'success'
+            });
             loadAudits();
             loadHomeStats(); // Update the stars on the dashboard
         }
@@ -2114,6 +2142,10 @@ async function loadAnalytics() {
             </div>
             <span class="badge bg-primary">Indicator Intelligence</span>
         </div>
+        <div class="module-guide-card p-3 mb-3">
+            <div class="guide-title">How To Read This Dashboard</div>
+            <p class="guide-text">Bars show achieved performance while the line shows target thresholds. Prioritize indicators below target.</p>
+        </div>
         <div class="card card-clinical p-4 analytics-chart-card">
             <canvas id="qiChart" width="400" height="150"></canvas>
         </div>
@@ -2126,7 +2158,7 @@ async function loadAnalytics() {
     const data = await res.json();
 
     if (data.length === 0) {
-        document.getElementById('riskAssessment').innerHTML = `<div class="alert alert-warning">No data available to chart. Add Quality Indicators first.</div>`;
+        document.getElementById('riskAssessment').innerHTML = `<div class="status-card status-warning">No data available to chart. Add quality indicators first.</div>`;
         return;
     }
 
@@ -2143,15 +2175,15 @@ async function loadAnalytics() {
                 {
                     label: 'Actual Performance (%)',
                     data: actuals,
-                    backgroundColor: 'rgba(26, 188, 156, 0.65)',
-                    borderColor: '#1abc9c',
+                    backgroundColor: 'rgba(93, 63, 211, 0.65)',
+                    borderColor: '#5d3fd3',
                     borderWidth: 1
                 },
                 {
                     label: 'ISO Target (%)',
                     data: targets,
-                    backgroundColor: 'rgba(241, 196, 15, 0.35)',
-                    borderColor: '#e67e22',
+                    backgroundColor: 'rgba(20, 184, 166, 0.25)',
+                    borderColor: '#14b8a6',
                     borderWidth: 1,
                     type: 'line' // This makes the target look like a threshold line
                 }
@@ -2169,13 +2201,13 @@ async function loadAnalytics() {
     const riskDiv = document.getElementById('riskAssessment');
     if (failing.length > 0) {
         riskDiv.innerHTML = `
-            <div class="alert alert-danger">
-                <h5>⚠️ Risk Detected</h5>
-                <p>${failing.length} Indicators are currently below the required ISO target. Priority: ${failing[0].phase} phase.</p>
+            <div class="status-card status-danger">
+                <h6 class="mb-1">Risk Detected</h6>
+                <p class="mb-0">${failing.length} indicators are currently below the required ISO target. Priority: ${failing[0].phase} phase.</p>
             </div>
         `;
     } else {
-        riskDiv.innerHTML = `<div class="alert alert-success">✅ All quality indicators are meeting or exceeding targets.</div>`;
+        riskDiv.innerHTML = `<div class="status-card status-success">All quality indicators are meeting or exceeding targets.</div>`;
     }
 }
 
@@ -2192,7 +2224,11 @@ async function loadBenchmarking() {
             </div>
             <button class="btn btn-sm btn-outline-primary" onclick="loadBenchmarking()">Refresh</button>
         </div>
-        <div id="benchmarkSummary" class="alert alert-light border module-status-alert">Loading benchmark summary...</div>
+        <div class="module-guide-card p-3 mb-3">
+            <div class="guide-title">Benchmark Focus</div>
+            <p class="guide-text">Use percentile band and KPI gaps to target improvement plans and cross-lab learning actions.</p>
+        </div>
+        <div id="benchmarkSummary" class="status-card status-info module-status-alert">Loading benchmark summary...</div>
         <div class="card card-clinical p-3 mb-3 benchmark-chart-card">
             <canvas id="benchmarkChart" height="120"></canvas>
         </div>
@@ -2222,7 +2258,7 @@ async function loadBenchmarking() {
     const tatKpi = data.comparativeKpis?.tat || {};
 
     const summaryEl = document.getElementById('benchmarkSummary');
-    summaryEl.className = percentile <= 25 ? 'alert alert-warning border module-status-alert' : 'alert alert-success border module-status-alert';
+    summaryEl.className = percentile <= 25 ? 'status-card status-warning module-status-alert' : 'status-card status-success module-status-alert';
     summaryEl.innerHTML = `
         Your latest SLIPTA performance is <strong>${myStars.toFixed(1)} star(s)</strong>.
         Global average is <strong>${globalStars.toFixed(1)}</strong>, top performer is <strong>${topStars.toFixed(1)}</strong>.
@@ -2374,8 +2410,8 @@ async function loadClientFeedback() {
 
     contentArea.innerHTML = `
         <div class="row g-3 feedback-layout-grid">
-            <div class="col-lg-5">
-                <div class="card card-clinical p-3 h-100 module-card-tight">
+            <div class="col-12">
+                <div class="card card-clinical p-3 module-card-tight">
                     <h6 class="fw-bold mb-2">Feedback Submission</h6>
                     <form id="feedbackForm" class="row g-2">
                         <div class="col-6">
@@ -2422,16 +2458,18 @@ async function loadClientFeedback() {
                             <button class="btn btn-sm btn-primary w-100">Submit Feedback</button>
                         </div>
                     </form>
-                    <div id="fbStatus" class="alert alert-light mt-2 mb-0">Ready.</div>
+                    <div id="fbStatus" class="status-card status-info mt-2 mb-0">Ready.</div>
                 </div>
             </div>
-            <div class="col-lg-7">
+            <div class="col-12">
                 <div class="card card-clinical p-3 module-card-tight">
                     <h6 class="fw-bold mb-2">Satisfaction & Complaint Analytics</h6>
                     <div id="fbAnalyticsSummary" class="small text-muted mb-2">Loading analytics...</div>
                     <canvas id="fbTrendChart" height="120"></canvas>
                 </div>
-                <div class="card card-clinical p-3 mt-3 module-card-tight">
+            </div>
+            <div class="col-12">
+                <div class="card card-clinical p-3 module-card-tight">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0">Monthly Feedback Report (Preview)</h6>
                         <button class="btn btn-sm btn-outline-secondary" onclick="loadFeedbackReport()">Refresh Report</button>
@@ -2466,7 +2504,7 @@ async function loadClientFeedback() {
 async function submitClientFeedback(e) {
     e.preventDefault();
     const statusEl = document.getElementById('fbStatus');
-    statusEl.className = 'alert alert-info mt-2 mb-0';
+    statusEl.className = 'status-card status-info mt-2 mb-0';
     statusEl.textContent = 'Submitting feedback...';
 
     const payload = {
@@ -2491,12 +2529,12 @@ async function submitClientFeedback(e) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-        statusEl.className = 'alert alert-danger mt-2 mb-0';
+        statusEl.className = 'status-card status-danger mt-2 mb-0';
         statusEl.textContent = data.message || 'Failed to submit feedback.';
         return;
     }
 
-    statusEl.className = 'alert alert-success mt-2 mb-0';
+    statusEl.className = 'status-card status-success mt-2 mb-0';
     statusEl.textContent = data.autoNc
         ? 'Feedback submitted. Auto-NC created and linked.'
         : 'Feedback submitted successfully.';
@@ -3051,7 +3089,7 @@ async function loadDeptView(deptName) {
         <div class="d-flex justify-content-between align-items-center">
             <h2>${deptName} Department</h2>
             <div>
-                <button class="btn btn-outline-dark btn-sm me-2" onclick="printEquipmentLog('${deptName}')">
+                <button class="btn btn-outline-primary btn-sm me-2" onclick="printEquipmentLog('${deptName}')">
                     🖨️ Print Equipment Log
                 </button>
                 <span class="badge bg-info p-2">ISO 15189 Section 5.0 - 6.0</span>
@@ -3555,14 +3593,14 @@ async function initProfileMenu() {
     wrapper.id = 'profileDropdownWrapper';
     wrapper.className = 'dropdown';
     wrapper.innerHTML = `
-        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <span class="rounded-circle d-inline-flex align-items-center justify-content-center overflow-hidden text-white" style="width:30px;height:30px;background:#2c3e50;font-size:0.75rem;">
+        <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-2 profile-menu-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="d-inline-flex align-items-center justify-content-center overflow-hidden text-white profile-avatar-shell">
                 <img id="profileAvatarImg" src="" alt="Profile" class="w-100 h-100 d-none" style="object-fit:cover;">
                 <span id="profileAvatarFallback">${(localStorage.getItem('fullName') || 'U').trim().charAt(0).toUpperCase()}</span>
             </span>
             <span class="small" id="profileMenuName">${localStorage.getItem('fullName') || 'User'}</span>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:260px;">
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm profile-dropdown-frame" style="min-width:260px;">
             <li class="px-3 pt-2">
                 <div class="fw-semibold" id="profileHeaderName">${localStorage.getItem('fullName') || 'User'}</div>
                 <div class="small text-muted">${ROLE_LABEL_BY_KEY[loggedInRoleKey] || currentRoleLabel || 'User'}</div>

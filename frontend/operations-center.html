@@ -22,70 +22,112 @@
             <a href="nc-capa.html" class="nav-link">NC & CAPA</a>            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
             <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
-            <a href="operations-center.html" class="nav-link active">Operations Center</a>
-            <a href="client-feedback.html" class="nav-link">Client Feedback</a>        </div>
+            <a href="client-feedback.html" class="nav-link">Client Feedback</a>
+            <a href="operations-center.html" class="nav-link active">Operations Center</a>        </div>
     </div>
 
     <div class="main-content-area">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 module-hero">
             <div>
                 <h3 class="fw-bold text-navy mb-1">Operations Center</h3>
                 <p class="text-muted mb-0">Central control room for quality operations, governance workflows, and management oversight.</p>
             </div>
-            <span id="opsRoleBadge" class="badge bg-dark">Restricted</span>
+            <span id="opsRoleBadge" class="badge bg-primary">Restricted</span>
+        </div>
+
+        <div class="module-guide-card p-3 mb-3">
+            <div class="guide-title">Operations Guidance</div>
+            <p class="guide-text">Use each section to manage SOP lifecycle, staff competency, risk register, and governance analytics from one workspace.</p>
         </div>
 
         <div id="accessGuard"></div>
         <div id="opsContent" class="d-none">
-            <div class="alert alert-light border mb-3">
-                <strong>Scope:</strong> This workspace currently supports active operations by <strong>Administrator</strong> and <strong>Laboratory Manager</strong>.
-            </div>
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
+            
+            <div class="row g-3 mb-3 ops-primary-stack">
+                <div class="col-12">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-sop">
                         <h6 class="fw-bold ops-section-title">SOP Lifecycle</h6>
-                        <form id="createSopForm" class="row g-2 mb-2">
-                            <div class="col-4"><input id="sopCode" class="form-control form-control-sm" placeholder="Code" required></div>
-                            <div class="col-8"><input id="sopTitle" class="form-control form-control-sm" placeholder="Title" required></div>
-                            <div class="col-8"><input id="sopIsoClause" class="form-control form-control-sm" placeholder="ISO Clause"></div>
-                            <div class="col-4"><button class="btn btn-sm btn-primary w-100">Create SOP</button></div>
-                        </form>
-                        <form id="uploadSopVersionForm" class="row g-2 mb-2">
-                            <div class="col-6"><input id="versionSopId" class="form-control form-control-sm" placeholder="SOP ID" required></div>
-                            <div class="col-6"><input id="versionNo" class="form-control form-control-sm" placeholder="Version No" required></div>
-                            <div class="col-12"><input id="versionFilePath" class="form-control form-control-sm" placeholder="File Path/URL" required></div>
-                            <div class="col-6"><input type="date" id="versionEffectiveDate" class="form-control form-control-sm"></div>
-                            <div class="col-6"><input type="date" id="versionExpiryDate" class="form-control form-control-sm"></div>
-                            <div class="col-8"><input id="versionChangeSummary" class="form-control form-control-sm" placeholder="Change Summary"></div>
-                            <div class="col-4"><button class="btn btn-sm btn-outline-primary w-100">Upload Version</button></div>
-                        </form>
-                        <form id="submitSopApprovalForm" class="row g-2 mb-2">
-                            <div class="col-6"><input id="submitSopId" class="form-control form-control-sm" placeholder="SOP ID" required></div>
-                            <div class="col-6"><input id="submitSopVersionId" class="form-control form-control-sm" placeholder="SOP Version ID" required></div>
-                            <div class="col-8"><input id="submitApproverName" class="form-control form-control-sm" placeholder="Approver Name"></div>
-                            <div class="col-4"><button class="btn btn-sm btn-outline-warning w-100">Submit Approval</button></div>
-                        </form>
-                        <form id="sopApprovalActionForm" class="row g-2 mb-2">
-                            <div class="col-5"><input id="approvalId" class="form-control form-control-sm" placeholder="Approval ID" required></div>
-                            <div class="col-4">
-                                <select id="approvalAction" class="form-select form-select-sm">
-                                    <option value="approve">Approve</option>
-                                    <option value="reject">Reject</option>
-                                </select>
+                        <div class="ops-stepper">
+                            <button type="button" class="ops-step-item active" data-step-target="#createSopForm" data-step-action="#createSopBtn">
+                                <span class="step-index">1</span>
+                                <span class="step-label">Create SOP</span>
+                                <span class="step-note">Define code and title.</span>
+                            </button>
+                            <button type="button" class="ops-step-item" data-step-target="#uploadSopVersionForm" data-step-action="#uploadSopVersionBtn">
+                                <span class="step-index">2</span>
+                                <span class="step-label">Upload Version</span>
+                                <span class="step-note">Add a new version to an existing SOP.</span>
+                            </button>
+                            <button type="button" class="ops-step-item" data-step-target="#submitSopApprovalForm" data-step-action="#submitSopApprovalBtn">
+                                <span class="step-index">3</span>
+                                <span class="step-label">Submit Approval</span>
+                                <span class="step-note">Route to approver.</span>
+                            </button>
+                            <button type="button" class="ops-step-item" data-step-target="#sopApprovalActionForm" data-step-action="#sopApprovalApplyBtn">
+                                <span class="step-index">4</span>
+                                <span class="step-label">Approve / Reject</span>
+                                <span class="step-note">Finalize decision.</span>
+                            </button>
+                            <button type="button" class="ops-step-item" data-step-target="#refreshSopMetricsBtn" data-step-action="#refreshSopMetricsBtn">
+                                <span class="step-index">5</span>
+                                <span class="step-label">Refresh Metrics</span>
+                                <span class="step-note">Check compliance status.</span>
+                            </button>
+                        </div>
+                        <div class="sop-step-panel" data-step-panel="#createSopForm">
+                            <form id="createSopForm" class="row g-2 mb-2">
+                                <div class="col-4"><input id="sopCode" class="form-control form-control-sm" placeholder="Code" required></div>
+                                <div class="col-8"><input id="sopTitle" class="form-control form-control-sm" placeholder="Title" required></div>
+                                <div class="col-8"><input id="sopIsoClause" class="form-control form-control-sm" placeholder="ISO Clause"></div>
+                                <div class="col-4 d-flex justify-content-end"><button id="createSopBtn" class="btn btn-sm btn-primary sop-action-btn">Create SOP</button></div>
+                            </form>
+                        </div>
+                        <div class="sop-step-panel d-none" data-step-panel="#uploadSopVersionForm">
+                            <div class="status-card status-info small mb-2">
+                                If the SOP already exists, enter its SOP ID below to add a new version.
                             </div>
-                            <div class="col-3"><button class="btn btn-sm btn-outline-danger w-100">Apply</button></div>
-                            <div class="col-12"><input id="approvalComment" class="form-control form-control-sm" placeholder="Comment"></div>
-                        </form>
+                            <form id="uploadSopVersionForm" class="row g-2 mb-2">
+                                <div class="col-6"><input id="versionSopId" class="form-control form-control-sm" placeholder="Existing SOP ID" required></div>
+                                <div class="col-6"><input id="versionNo" class="form-control form-control-sm" placeholder="Version No" required></div>
+                                <div class="col-12"><input id="versionFilePath" class="form-control form-control-sm" placeholder="Document link or saved file location" required></div>
+                                <div class="col-12"><div class="form-text">Example: shared folder location or document link used by your team.</div></div>
+                                <div class="col-6"><input type="date" id="versionEffectiveDate" class="form-control form-control-sm"></div>
+                                <div class="col-6"><input type="date" id="versionExpiryDate" class="form-control form-control-sm"></div>
+                                <div class="col-8"><input id="versionChangeSummary" class="form-control form-control-sm" placeholder="Change Summary"></div>
+                                <div class="col-4 d-flex justify-content-end"><button id="uploadSopVersionBtn" class="btn btn-sm btn-outline-primary sop-action-btn">Upload Version</button></div>
+                            </form>
+                        </div>
+                        <div class="sop-step-panel d-none" data-step-panel="#submitSopApprovalForm">
+                            <form id="submitSopApprovalForm" class="row g-2 mb-2">
+                                <div class="col-6"><input id="submitSopId" class="form-control form-control-sm" placeholder="SOP ID" required></div>
+                                <div class="col-6"><input id="submitSopVersionId" class="form-control form-control-sm" placeholder="SOP Version ID" required></div>
+                                <div class="col-8"><input id="submitApproverName" class="form-control form-control-sm" placeholder="Approver Name"></div>
+                                <div class="col-4 d-flex justify-content-end"><button id="submitSopApprovalBtn" class="btn btn-sm btn-outline-warning sop-action-btn">Submit Approval</button></div>
+                            </form>
+                        </div>
+                        <div class="sop-step-panel d-none" data-step-panel="#sopApprovalActionForm">
+                            <form id="sopApprovalActionForm" class="row g-2 mb-2">
+                                <div class="col-5"><input id="approvalId" class="form-control form-control-sm" placeholder="Approval ID" required></div>
+                                <div class="col-4">
+                                    <select id="approvalAction" class="form-select form-select-sm">
+                                        <option value="approve">Approve</option>
+                                        <option value="reject">Reject</option>
+                                    </select>
+                                </div>
+                                <div class="col-3 d-flex justify-content-end"><button id="sopApprovalApplyBtn" class="btn btn-sm btn-outline-danger sop-action-btn">Apply</button></div>
+                                <div class="col-12"><input id="approvalComment" class="form-control form-control-sm" placeholder="Comment"></div>
+                            </form>
+                        </div>
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <strong class="small">Compliance and Expiring</strong>
-                            <button id="refreshSopMetricsBtn" class="btn btn-sm btn-outline-secondary">Refresh</button>
+                            <button id="refreshSopMetricsBtn" class="btn btn-sm btn-outline-secondary sop-action-btn">Refresh</button>
                         </div>
                         <div id="sopMetrics" class="small text-muted mb-2">No data loaded.</div>
                         <div id="expiringSopsTable" class="table-responsive"></div>
                     </div>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-staff">
                         <h6 class="fw-bold ops-section-title">Staff Competency</h6>
                         <form id="createStaffForm" class="row g-2 mb-2">
@@ -126,8 +168,8 @@
                 </div>
             </div>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
+            <div class="row g-3 mb-3 ops-primary-stack">
+                <div class="col-12">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-risk">
                         <h6 class="fw-bold ops-section-title">Risk Register</h6>
                         <form id="createRiskForm" class="row g-2 mb-2">
@@ -171,7 +213,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="card card-clinical p-3 h-100 ops-section-card ops-section-audit">
                         <h6 class="fw-bold ops-section-title">SLIPTA Automation</h6>
                         <form id="createSliptaAssessmentForm" class="row g-2 mb-2">
@@ -197,30 +239,52 @@
 
             <div class="card card-clinical p-3 ops-section-card ops-section-analytics">
                 <h6 class="fw-bold ops-section-title">Analytics Engine + Management Review</h6>
-                <div class="row g-2 mb-2">
-                    <div class="col-md-3"><button id="loadManagementReviewBtn" class="btn btn-sm btn-outline-primary w-100">Load Management Review</button></div>
-                    <div class="col-md-3"><button id="loadDepartmentCompareBtn" class="btn btn-sm btn-outline-primary w-100">Load Department Compare</button></div>
-                    <div class="col-md-3"><button id="loadTrendProjectionsBtn" class="btn btn-sm btn-outline-primary w-100">Load Trend Projections</button></div>
-                    <div class="col-md-3">
-                        <form id="generateMonthlyReportForm" class="d-flex gap-2">
-                            <input id="monthlyPeriod" class="form-control form-control-sm" placeholder="YYYY-MM">
-                            <button class="btn btn-sm btn-primary">Monthly Report</button>
-                        </form>
-                    </div>
+                <p class="small text-muted mb-2">Load strategic analytics, compare departments, and generate monthly review outputs for management action.</p>
+
+                <div class="ops-analytics-toolbar mb-3">
+                    <button id="loadManagementReviewBtn" class="btn btn-sm btn-outline-primary">Management Review</button>
+                    <button id="loadDepartmentCompareBtn" class="btn btn-sm btn-outline-primary">Department Compare</button>
+                    <button id="loadTrendProjectionsBtn" class="btn btn-sm btn-outline-primary">Trend Projections</button>
                 </div>
-                <div class="row g-2 mb-2">
-                    <div class="col-md-4">
-                        <button id="downloadMonthlyPdfBtn" class="btn btn-sm btn-outline-danger w-100">Generate Monthly Quality PDF</button>
-                    </div>
-                    <div class="col-md-8 small text-muted d-flex align-items-center">
+
+                <div class="ops-analytics-monthly mb-3">
+                    <form id="generateMonthlyReportForm" class="ops-inline-form">
+                        <label for="monthlyPeriod" class="small fw-semibold text-muted mb-1 d-block">Monthly Period</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <input id="monthlyPeriod" class="form-control form-control-sm" placeholder="YYYY-MM">
+                            <button class="btn btn-sm btn-primary">Generate Monthly Report</button>
+                        </div>
+                    </form>
+                    <div class="small text-muted mt-2">
                         Uses the selected `YYYY-MM` period. If empty, it uses the current/latest period.
                     </div>
                 </div>
-                <div id="managementReviewPanel" class="small text-muted mb-2">Management review not loaded.</div>
-                <div class="row g-2">
-                    <div class="col-md-4" id="monthlyReportPanel"></div>
-                    <div class="col-md-4" id="departmentComparePanel"></div>
-                    <div class="col-md-4" id="trendProjectionsPanel"></div>
+
+                <div class="mb-3">
+                    <button id="downloadMonthlyPdfBtn" class="btn btn-sm btn-outline-danger">Generate Monthly Quality PDF</button>
+                </div>
+
+                <div id="managementReviewPanel" class="status-card status-info mb-3">Management review not loaded.</div>
+
+                <div class="row g-3 ops-analytics-panels">
+                    <div class="col-12 col-lg-4">
+                        <div class="ops-analytics-panel-card">
+                            <div class="ops-analytics-panel-title">Monthly Report</div>
+                            <div id="monthlyReportPanel" class="small text-muted">Not generated yet.</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <div class="ops-analytics-panel-card">
+                            <div class="ops-analytics-panel-title">Department Compare</div>
+                            <div id="departmentComparePanel" class="small text-muted">Not loaded yet.</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <div class="ops-analytics-panel-card">
+                            <div class="ops-analytics-panel-title">Trend Projections</div>
+                            <div id="trendProjectionsPanel" class="small text-muted">Not loaded yet.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -266,7 +330,7 @@
                 </div>
             </div>
 
-            <div id="opsStatus" class="alert alert-light mt-3 mb-0">Ready.</div>
+            <div id="opsStatus" class="status-card status-info mt-3 mb-0">Ready.</div>
         </div>
     </div>
 
@@ -275,8 +339,3 @@
     <script src="operations-center.js"></script>
 </body>
 </html>
-
-
-
-
-

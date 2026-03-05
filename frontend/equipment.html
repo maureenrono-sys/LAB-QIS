@@ -24,17 +24,22 @@
             <a href="nc-capa.html" class="nav-link">NC & CAPA</a>            <a href="audits.html" class="nav-link">SLIPTA Audits</a>
             <a href="analytics.html" class="nav-link">Risk & Analytics</a>
             <a href="benchmarking.html" class="nav-link">Peer Benchmarking</a>
-            <a href="operations-center.html" class="nav-link">Operations Center</a>
-            <a href="client-feedback.html" class="nav-link">Client Feedback</a>        </div>
+            <a href="client-feedback.html" class="nav-link">Client Feedback</a>
+            <a href="operations-center.html" class="nav-link">Operations Center</a>        </div>
     </div>
 
     <div class="main-content-area">
-        <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-2 flex-wrap module-hero">
             <h3 class="fw-bold text-navy mb-0">Equipment Maintenance Log</h3>
             <div class="d-flex align-items-center gap-2">
                 <button id="addEquipmentBtn" class="btn btn-sm btn-primary d-none">+ Add Equipment</button>
                 <span id="instrumentBadge" class="badge bg-success">Instrument: Select equipment</span>
             </div>
+        </div>
+
+        <div class="module-guide-card p-3 mb-3">
+            <div class="guide-title">Equipment Guidance</div>
+            <p class="guide-text">Select the instrument, complete checklist and dates, then submit maintenance records for audit-ready equipment traceability.</p>
         </div>
 
         <div class="row g-4 mb-2 equipment-shell">
@@ -61,7 +66,7 @@
             </div>
         </div>
 
-        <div id="equipmentStatus" class="small text-muted mb-3">Loading equipment data...</div>
+        <div id="equipmentStatus" class="status-card status-info small mb-3">Loading equipment data...</div>
 
         <div class="row g-4">
             <div class="col-lg-8">
@@ -196,6 +201,11 @@
         const upcomingDate = document.getElementById('upcomingDate');
         const manualStatus = document.getElementById('manualStatus');
 
+        function showEquipmentNotice(message, variant = 'info') {
+            equipmentStatus.className = `status-card status-${variant} small mb-3`;
+            equipmentStatus.textContent = message;
+        }
+
         let currentEquipment = [];
         const roleKey = localStorage.getItem('roleKey') || '';
         const userRoleLabel = localStorage.getItem('userRole') || '';
@@ -253,7 +263,7 @@
 
         async function loadEquipmentByDepartment() {
             const dept = encodeURIComponent(deptSelect.value);
-            equipmentStatus.textContent = 'Loading equipment data...';
+            showEquipmentNotice('Loading equipment data...', 'info');
 
             try {
                 const res = await fetch(`${API_URL}/equipment/dept/${dept}`, {
@@ -269,9 +279,9 @@
 
                 if (!currentEquipment.length) {
                     equipmentSelect.innerHTML = '<option value="">No equipment found</option>';
-                    equipmentStatus.textContent = 'No registered equipment in this department.';
+                    showEquipmentNotice('No registered equipment in this department.', 'warning');
                 } else {
-                    equipmentStatus.textContent = `${currentEquipment.length} equipment item(s) loaded.`;
+                    showEquipmentNotice(`${currentEquipment.length} equipment item(s) loaded.`, 'success');
                     const selected = currentEquipment[0];
                     document.getElementById('serviceDate').valueAsDate = new Date();
                     document.getElementById('nextServiceDate').value = selected.nextServiceDate
@@ -281,7 +291,7 @@
 
                 updateUpcomingCard();
             } catch (error) {
-                equipmentStatus.textContent = 'Unable to load equipment. Check API/server status.';
+                showEquipmentNotice('Unable to load equipment. Check server status.', 'danger');
                 equipmentSelect.innerHTML = '<option value="">Load failed</option>';
                 updateUpcomingCard();
             }
@@ -292,7 +302,7 @@
 
             const selectedEquipment = equipmentSelect.value;
             if (!selectedEquipment) {
-                alert('Select equipment before submitting.');
+                showEquipmentNotice('Select equipment before submitting.', 'warning');
                 return;
             }
 
@@ -320,11 +330,11 @@
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({ message: 'Failed to save maintenance log.' }));
-                alert(err.message || 'Failed to save maintenance log.');
+                showEquipmentNotice(err.message || 'Failed to save maintenance log.', 'danger');
                 return;
             }
 
-            alert('Maintenance log submitted successfully.');
+            showEquipmentNotice('Maintenance log submitted successfully.', 'success');
             await loadEquipmentByDepartment();
         }
 
@@ -349,13 +359,14 @@
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                alert(data.message || 'Failed to add equipment.');
+                showEquipmentNotice(data.message || 'Failed to add equipment.', 'danger');
                 return;
             }
 
             bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
             document.getElementById('addEquipmentForm').reset();
             deptSelect.value = payload.department;
+            showEquipmentNotice('Equipment added successfully.', 'success');
             await loadEquipmentByDepartment();
         }
 
