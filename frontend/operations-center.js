@@ -33,6 +33,13 @@ async function opsRequest(path, options = {}) {
     return body;
 }
 
+
+function safeDateLabel(value) {
+    if (!value) return '-';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString();
+}
 function setOpsStatus(message, type = 'light') {
     const el = document.getElementById('opsStatus');
     if (!el) return;
@@ -505,6 +512,7 @@ function bindRiskForms() {
             document.getElementById('updateRiskId').value = risk.id;
             setOpsStatus(`Risk created (${risk.id}).`, 'success');
             refreshRiskMatrix();
+    refreshOpsCommandCenter();
         } catch (error) {
             setOpsStatus(`Create risk failed: ${error.message}`, 'danger');
         }
@@ -532,6 +540,7 @@ function bindRiskForms() {
             });
             setOpsStatus('Risk updated.', 'success');
             refreshRiskMatrix();
+    refreshOpsCommandCenter();
         } catch (error) {
             setOpsStatus(`Update risk failed: ${error.message}`, 'danger');
         }
@@ -596,6 +605,108 @@ function bindAutomationForms() {
     });
 }
 
+
+function renderReadinessDial(readiness) {
+    const score = Number(readiness?.readinessScore || 0);
+    const band = readiness?.band || 'Unknown';
+    const hue = score >= 85 ? '#0f766e' : score >= 70 ? '#b45309' : '#be123c';
+    return `
+        <div class="ops-readiness-dial" style="--dial-color:${hue}; --dial-score:${Math.max(0, Math.min(100, score))};">
+            <div class="ops-readiness-value">${score}%</div>
+            <div class="ops-readiness-band">${band}</div>
+        </div>
+        <div class="small text-muted mt-2">
+            SOP <strong>${readiness?.components?.sopCompliance ?? 0}%</strong> |
+            Competency <strong>${readiness?.components?.competencyCompliance ?? 0}%</strong> |
+            Equipment <strong>${readiness?.components?.equipmentUptime ?? 0}%</strong>
+        </div>
+    `;
+}
+
+async function refreshOpsCommandCenter() {
+    try {
+        const [readiness, queueRes, feedbackAnalytics, feedbackReport] = await Promise.all([
+            opsRequest('/analytics-engine/readiness', { headers: opsHeaders(false) }),
+            opsRequest('/nc-intelligence/capa/effectiveness-queue', { headers: opsHeaders(false) }),
+            opsRequest('/client-feedback/analytics/summary', { headers: opsHeaders(false) }),
+            opsRequest('/client-feedback/reports/monthly', { headers: opsHeaders(false) })
+        ]);
+
+        const readinessPanel = document.getElementById('auditReadinessPanel');
+        if (readinessPanel) readinessPanel.innerHTML = renderReadinessDial(readiness);
+
+        const recPanel = document.getElementById('readinessRecommendationsPanel');
+        if (recPanel) {
+            const recs = readiness.recommendations || [];
+            recPanel.innerHTML = recs.map((item) => `<div class="ops-mini-point">${item}</div>`).join('');
+        }
+
+        const queuePanel = document.getElementById('capaEffectivenessQueuePanel');
+        if (queuePanel) {
+            const queue = queueRes.queue || [];
+            if (!queue.length) {
+                queuePanel.innerHTML = '<span class="text-success">No pending CAPA effectiveness checks.</span>';
+            } else {
+                queuePanel.innerHTML = renderOpsTable(
+                    ['CAPA', 'Owner', 'Review Due', 'NC Summary'],
+                    queue.slice(0, 6).map((row) => [
+                        `<code>${row.id}</code>`,
+                        row.ownerName || '-',
+                        `${safeDateLabel(row.effectivenessCheckDueAt)}${row.isOverdue ? ' <span class="badge bg-danger">Overdue</span>' : ''}`,
+                        String(row.NonConformance?.description || '-').slice(0, 55)
+                    ])
+                );
+            }
+        }
+
+        const feedbackPanel = document.getElementById('clientFeedbackOpsPanel');
+        if (feedbackPanel) {
+            feedbackPanel.innerHTML = `
+                Total: <strong>${feedbackAnalytics.totalFeedback}</strong> |
+                Avg Satisfaction: <strong>${feedbackAnalytics.avgSatisfaction}</strong> |
+                Closed in Target: <strong>${feedbackAnalytics.resolvedWithinTargetPercent}%</strong>
+            `;
+        }
+
+        const feedbackReportPanel = document.getElementById('clientFeedbackReportPanel');
+        if (feedbackReportPanel) {
+            const topIssue = Object.entries(feedbackReport.topIssues || {}).sort((a, b) => b[1] - a[1])[0];
+            feedbackReportPanel.innerHTML = `
+                <div>Most common issue: <strong>${topIssue ? `${topIssue[0]} (${topIssue[1]})` : 'None'}</strong></div>
+                <div class="mt-1">Status mix: ${Object.entries(feedbackReport.byStatus || {}).map(([k, v]) => `${k}: ${v}`).join(' | ') || 'No data'}</div>
+            `;
+        }
+    } catch (error) {
+        setOpsStatus(`Command room refresh failed: ${error.message}`, 'danger');
+    }
+}
+
+function bindOpsCommandCenter() {
+    document.getElementById('refreshOpsCommandBtn')?.addEventListener('click', async () => {
+        await refreshOpsCommandCenter();
+        setOpsStatus('Command room refreshed.', 'success');
+    });
+
+    document.getElementById('updateCapaEffectivenessForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const capaId = document.getElementById('effectivenessCapaId').value.trim();
+            await opsRequest(`/nc-intelligence/capa/${capaId}/effectiveness`, {
+                method: 'PUT',
+                headers: opsHeaders(),
+                body: JSON.stringify({
+                    effectivenessResult: document.getElementById('effectivenessResult').value,
+                    effectivenessScore: Number(document.getElementById('effectivenessScore').value || 0),
+                    effectivenessNotes: document.getElementById('effectivenessNotes').value.trim() || undefined
+                })
+            });
+            setOpsStatus('CAPA effectiveness check saved.', 'success');
+            refreshOpsCommandCenter();
+        } catch (error) {
+            setOpsStatus(`Save effectiveness failed: ${error.message}`, 'danger');
+        }
+    });
+}
 function bindReportButtons() {
     document.getElementById('loadManagementReviewBtn')?.addEventListener('click', async () => {
         try {
@@ -837,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindStaffForms();
     bindRiskForms();
     bindAutomationForms();
+    bindOpsCommandCenter();
     bindReportButtons();
     if (roleKey === 'ADMIN') {
         bindProductionControls();
@@ -849,4 +961,5 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshSopMetrics();
     refreshStaffMetrics();
     refreshRiskMatrix();
+    refreshOpsCommandCenter();
 });

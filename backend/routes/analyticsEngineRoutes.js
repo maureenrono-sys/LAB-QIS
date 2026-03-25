@@ -6,12 +6,14 @@ const {
     generateMonthlyReport,
     compareDepartments,
     getTrendProjections,
-    exportPdf
+    exportPdf,
+    getAuditReadiness
 } = require('../controllers/analyticsEngineController');
 
 router.post('/reports/monthly', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER'), generateMonthlyReport);
 router.get('/department-compare', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), compareDepartments);
 router.get('/projections', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getTrendProjections);
 router.get('/reports/:id/pdf', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), exportPdf);
+router.get('/readiness', protect, authorizeRoleKeys('ADMIN', 'LAB_MANAGER', 'QUALITY_ASSURANCE_MANAGER', 'LAB_SCIENTIST'), getAuditReadiness);
 
 module.exports = router;

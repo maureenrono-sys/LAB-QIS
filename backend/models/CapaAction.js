@@ -27,6 +27,19 @@ const CapaAction = sequelize.define('CapaAction', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     },
+    effectivenessCheckDueAt: {
+        type: DataTypes.DATE
+    },
+    effectivenessCheckedAt: {
+        type: DataTypes.DATE
+    },
+    effectivenessResult: {
+        type: DataTypes.ENUM('Pending', 'Effective', 'Ineffective'),
+        defaultValue: 'Pending'
+    },
+    effectivenessNotes: {
+        type: DataTypes.TEXT
+    },
     details: {
         type: DataTypes.TEXT
     }

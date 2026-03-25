@@ -2,8 +2,10 @@ const { getSystemState } = require('../services/systemStateService');
 
 const BYPASS_PREFIXES = [
     '/api/system/health',
+    '/api/system/maintenance',
     '/api/auth/login',
-    '/api/auth/demo-bootstrap'
+    '/api/auth/demo-bootstrap',
+    '/api/auth/me'
 ];
 
 async function enforceMaintenanceMode(req, res, next) {

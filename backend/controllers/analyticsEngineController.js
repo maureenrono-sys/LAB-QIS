@@ -1,5 +1,5 @@
 const PDFDocument = require('pdfkit');
-const { DashboardSnapshot, Department, KpiValue, QualityIndicator, NonConformance, Audit } = require('../models');
+const { DashboardSnapshot, Department, KpiValue, QualityIndicator, NonConformance, Audit, SopVersion, Sop, SopAcknowledgement, Competency, Equipment, CapaAction, Staff } = require('../models');
 const { getCurrentPeriod } = require('../services/kpiService');
 
 exports.generateMonthlyReport = async (req, res) => {
@@ -57,6 +57,108 @@ exports.getTrendProjections = async (req, res) => {
     }
 };
 
+exports.getAuditReadiness = async (req, res) => {
+    try {
+        const labId = req.user.labId;
+        const today = new Date();
+
+        const [
+            approvedVersions,
+            acknowledgements,
+            competencyRows,
+            equipmentRows,
+            capaRows,
+            ncRows
+        ] = await Promise.all([
+            SopVersion.count({
+                include: [{ model: Sop, where: { labId, status: 'Approved' }, required: true }]
+            }),
+            SopAcknowledgement.count({
+                include: [{
+                    model: SopVersion,
+                    include: [{ model: Sop, where: { labId, status: 'Approved' }, required: true }],
+                    required: true
+                }]
+            }),
+            Competency.findAll({
+                include: [{ model: Staff, where: { labId }, required: true }]
+            }),
+            Equipment.findAll({ where: { labId } }),
+            CapaAction.findAll({ where: { labId } }),
+            NonConformance.findAll({ where: { labId } })
+        ]);
+
+        const sopCompliance = approvedVersions > 0
+            ? Math.min(100, Number(((acknowledgements / approvedVersions) * 100).toFixed(2)))
+            : 100;
+
+        const competencyTotal = competencyRows.length;
+        const competencyValid = competencyRows.filter((item) => {
+            if (item.status !== 'Competent') return false;
+            if (!item.expiresAt) return true;
+            return new Date(item.expiresAt).getTime() >= today.getTime();
+        }).length;
+        const competencyCompliance = competencyTotal > 0
+            ? Number(((competencyValid / competencyTotal) * 100).toFixed(2))
+            : 100;
+
+        const equipmentTotal = equipmentRows.length;
+        const equipmentOperational = equipmentRows.filter((item) => item.status === 'Operational').length;
+        const equipmentUptime = equipmentTotal > 0
+            ? Number(((equipmentOperational / equipmentTotal) * 100).toFixed(2))
+            : 100;
+
+        const capaTotal = capaRows.length;
+        const pendingCapa = capaRows.filter((item) => item.status !== 'Closed').length;
+        const overdueCapa = capaRows.filter((item) => item.status !== 'Closed' && item.dueDate && new Date(item.dueDate).getTime() < today.getTime()).length;
+        const capaControlScore = capaTotal > 0
+            ? Math.max(0, Number((100 - ((pendingCapa / capaTotal) * 60) - ((overdueCapa / capaTotal) * 40)).toFixed(2)))
+            : 100;
+
+        const openNc = ncRows.filter((item) => item.status !== 'Closed').length;
+        const overdueNc = ncRows.filter((item) => item.status !== 'Closed' && item.deadline && new Date(item.deadline).getTime() < today.getTime()).length;
+        const ncBurdenScore = ncRows.length > 0
+            ? Math.max(0, Number((100 - ((openNc / ncRows.length) * 55) - ((overdueNc / ncRows.length) * 45)).toFixed(2)))
+            : 100;
+
+        const readinessScore = Number((
+            (sopCompliance * 0.25)
+            + (competencyCompliance * 0.2)
+            + (equipmentUptime * 0.2)
+            + (capaControlScore * 0.2)
+            + (ncBurdenScore * 0.15)
+        ).toFixed(2));
+
+        const recommendations = [];
+        if (sopCompliance < 85) recommendations.push('SOP compliance is below 85%. Trigger staff read acknowledgement for pending SOP versions.');
+        if (competencyCompliance < 85) recommendations.push('Competency compliance is below 85%. Prioritize retraining and expiring competency renewal.');
+        if (equipmentUptime < 90) recommendations.push('Equipment uptime is below 90%. Review maintenance plan and unresolved downtime.');
+        if (overdueCapa > 0) recommendations.push(`${overdueCapa} CAPA item(s) are overdue. Escalate owners and set immediate closure deadlines.`);
+        if (overdueNc > 0) recommendations.push(`${overdueNc} NC item(s) are overdue. Add justifications and close verification evidence gaps.`);
+        if (!recommendations.length) recommendations.push('Readiness is stable. Continue weekly monitoring and preventive actions.');
+
+        res.json({
+            readinessScore,
+            band: readinessScore >= 85 ? 'Audit Ready' : readinessScore >= 70 ? 'Needs Attention' : 'At Risk',
+            components: {
+                sopCompliance,
+                competencyCompliance,
+                equipmentUptime,
+                capaControlScore,
+                ncBurdenScore
+            },
+            workload: {
+                openNc,
+                overdueNc,
+                pendingCapa,
+                overdueCapa
+            },
+            recommendations
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 exports.exportPdf = async (req, res) => {
     try {
         const requestedId = req.params.id;

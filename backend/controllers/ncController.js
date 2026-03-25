@@ -1,10 +1,29 @@
-const { NonConformance, Notification } = require('../models');
+const { Op } = require('sequelize');
+const { NonConformance, Notification, RiskRegister } = require('../models');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function daysSince(dateValue) {
     if (!dateValue) return 0;
     return Math.floor((Date.now() - new Date(dateValue).getTime()) / DAY_MS);
+}
+
+function normalizeSignature(input) {
+    return String(input || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 90);
+}
+
+function riskKeywords(nc) {
+    const source = `${nc.description || ''} ${nc.rootCause || ''}`.toLowerCase();
+    return source
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((token) => token.length >= 5)
+        .slice(0, 6);
 }
 
 async function createEscalationIfMissing(labId, message) {
@@ -20,40 +39,96 @@ async function createEscalationIfMissing(labId, message) {
     });
 }
 
-// @desc    Log a new Non-Conformance
-// @route   POST /api/nc
+async function deriveRiskSuggestion(nc) {
+    const windowStart = new Date(Date.now() - (180 * DAY_MS));
+    const recent = await NonConformance.findAll({
+        where: {
+            labId: nc.labId,
+            createdAt: { [Op.gte]: windowStart }
+        },
+        attributes: ['id', 'description', 'rootCause', 'severity', 'createdAt'],
+        order: [['createdAt', 'DESC']],
+        limit: 500
+    });
+
+    const signature = normalizeSignature(nc.rootCause || nc.description);
+    if (!signature) return null;
+
+    const repeats = recent.filter((item) => normalizeSignature(item.rootCause || item.description) === signature);
+    if (repeats.length < 3) return null;
+
+    const keywords = riskKeywords(nc);
+    const riskWhere = {
+        labId: nc.labId,
+        status: { [Op.ne]: 'Closed' }
+    };
+
+    if (keywords.length) {
+        riskWhere[Op.or] = keywords.map((word) => ({
+            [Op.or]: [
+                { title: { [Op.like]: `%${word}%` } },
+                { hazard: { [Op.like]: `%${word}%` } }
+            ]
+        }));
+    }
+
+    const matchingRisks = await RiskRegister.findAll({
+        where: riskWhere,
+        attributes: ['id', 'title', 'likelihood', 'impact', 'residualScore', 'status'],
+        order: [['residualScore', 'DESC']],
+        limit: 3
+    });
+
+    const suggestion = {
+        signature,
+        repeatCount: repeats.length,
+        recommendation: 'This NC pattern has occurred at least 3 times. Review linked risk likelihood and strengthen controls.',
+        matchingRisks
+    };
+
+    const riskLead = matchingRisks[0];
+    const riskText = riskLead
+        ? `Top matching risk: ${riskLead.title} (Likelihood ${riskLead.likelihood}/5).`
+        : 'No matching risk was found; consider creating a new NC-sourced risk.';
+
+    await createEscalationIfMissing(
+        nc.labId,
+        `Risk linkage alert: NC pattern repeated ${repeats.length} times in 6 months. ${riskText}`
+    );
+
+    return suggestion;
+}
+
 exports.createNC = async (req, res) => {
     try {
         const { description, severity, rootCause, correctiveAction, deadline } = req.body;
-        
-        // 1. Save the Incident
+
         const nc = await NonConformance.create({
             description,
             severity,
             rootCause,
             correctiveAction,
             deadline,
-            labId: req.user.labId 
+            labId: req.user.labId
         });
 
-        // 2. Trigger the Notification for the UI
         await Notification.create({
             message: `Alert: New ${severity} severity incident logged.`,
             type: 'Alert',
             labId: req.user.labId
         });
 
-        res.status(201).json(nc);
+        const riskSuggestion = await deriveRiskSuggestion(nc);
+
+        res.status(201).json({ ...nc.toJSON(), riskSuggestion });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 };
 
-// @desc    Get all Non-Conformances for my lab
-// @route   GET /api/nc
 exports.getNCs = async (req, res) => {
     try {
-        const ncs = await NonConformance.findAll({ 
+        const ncs = await NonConformance.findAll({
             where: { labId: req.user.labId },
             order: [['createdAt', 'DESC']]
         });
@@ -80,8 +155,6 @@ exports.getNCs = async (req, res) => {
     }
 };
 
-// @desc    Update NC/CAPA workflow details
-// @route   PUT /api/nc/:id
 exports.updateNC = async (req, res) => {
     try {
         const nc = await NonConformance.findOne({
@@ -173,7 +246,9 @@ exports.updateNC = async (req, res) => {
             labId: req.user.labId
         });
 
-        res.json(nc);
+        const riskSuggestion = await deriveRiskSuggestion(nc);
+
+        res.json({ ...nc.toJSON(), riskSuggestion });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

@@ -2009,3 +2009,86 @@ body > .container-fluid.p-4 > * + * {
         font-size: 0.86rem;
     }
 }
+
+
+.ops-page .ops-command-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.ops-page .ops-command-card {
+    border: 1px solid #e8e2ff;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff, #fbfaff);
+    box-shadow: 0 10px 18px rgba(73, 36, 121, 0.08);
+    padding: 0.8rem;
+}
+
+.ops-page .ops-command-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #4f31b6;
+    font-weight: 700;
+    margin-bottom: 0.45rem;
+}
+
+.ops-page .ops-readiness-shell {
+    min-height: 120px;
+}
+
+.ops-page .ops-readiness-dial {
+    --dial-color: #0f766e;
+    --dial-score: 0;
+    width: 108px;
+    height: 108px;
+    border-radius: 999px;
+    background: conic-gradient(var(--dial-color) calc(var(--dial-score) * 1%), #e5e7eb 0);
+    display: grid;
+    place-items: center;
+    position: relative;
+}
+
+.ops-page .ops-readiness-dial::before {
+    content: '';
+    width: 78px;
+    height: 78px;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px #ede9fe;
+}
+
+.ops-page .ops-readiness-value,
+.ops-page .ops-readiness-band {
+    position: absolute;
+    text-align: center;
+}
+
+.ops-page .ops-readiness-value {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #312e81;
+    transform: translateY(-8px);
+}
+
+.ops-page .ops-readiness-band {
+    font-size: 0.66rem;
+    color: #64748b;
+    transform: translateY(14px);
+}
+
+.ops-page .ops-mini-point {
+    border-left: 3px solid #14b8a6;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.35rem 0.45rem;
+    margin-bottom: 0.32rem;
+    color: #334155;
+}
+
+@media (max-width: 1100px) {
+    .ops-page .ops-command-row {
+        grid-template-columns: 1fr;
+    }
+}

@@ -993,33 +993,47 @@ async function loadWeeklyCapaReview() {
 }
 
 async function loadHomeStats() {
+    if (loggedInRoleKey === ROLE_KEYS.ADMIN) {
+        currentRoleKey = localStorage.getItem('viewRoleKey') || ROLE_KEYS.ADMIN;
+    } else {
+        currentRoleKey = loggedInRoleKey;
+    }
+
+    setLabNameHeading();
+    applyRoleNavigation();
+
+    let dashboardData = { myPerformance: 0, globalAverage: 0 };
+
     try {
-        if (loggedInRoleKey === ROLE_KEYS.ADMIN) {
-            currentRoleKey = localStorage.getItem('viewRoleKey') || ROLE_KEYS.ADMIN;
-        } else {
-            currentRoleKey = loggedInRoleKey;
-        }
-
-        setLabNameHeading();
-        applyRoleNavigation();
-
         const res = await fetch(`${API_URL}/benchmarks/summary`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!res.ok) {
-            throw new Error('Failed to fetch benchmark summary');
+            const body = await res.json().catch(() => ({}));
+            if (res.status === 503 && body?.maintenance?.enabled) {
+                notifyUser(`System under maintenance: ${body.maintenance.reason || 'Scheduled maintenance'}`, {
+                    title: 'Maintenance Mode',
+                    variant: 'warning'
+                });
+            }
+            throw new Error(body.message || 'Failed to fetch benchmark summary');
         }
 
-        const data = await res.json();
-        renderDashboardByRole(data);
-        loadDashboardOperationalCards();
-        loadDashboardIntelligenceSummary();
-        loadWeeklyCapaReview();
-        initTestingChart();
-        runServiceChecks();
+        dashboardData = await res.json();
     } catch (err) {
+        const hero = document.getElementById('dashboardRoleHero');
+        if (hero) {
+            hero.innerHTML = '<div class="status-card status-warning">Live benchmark summary is temporarily unavailable. Showing dashboard layout with fallback values.</div>';
+        }
     }
+
+    renderDashboardByRole(dashboardData);
+    loadDashboardOperationalCards();
+    loadDashboardIntelligenceSummary();
+    loadWeeklyCapaReview();
+    initTestingChart();
+    runServiceChecks();
 }
 
 if (document.getElementById('statsRow')) {
