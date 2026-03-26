@@ -1,4 +1,7 @@
-const OPS_API_URL = 'http://localhost:5000/api';
+const OPS_DEFAULT_API_ORIGIN = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:5000'
+    : window.location.origin;
+const OPS_API_URL = localStorage.getItem('apiBase') || `${OPS_DEFAULT_API_ORIGIN}/api`;
 const opsToken = localStorage.getItem('token');
 
 function resolveRoleKey() {

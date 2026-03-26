@@ -1,8 +1,11 @@
-const DEPT_API_URL = 'http://localhost:5000/api';
+const DEPT_DEFAULT_API_ORIGIN = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:5000'
+    : window.location.origin;
+const DEPT_API_URL = localStorage.getItem('apiBase') || `${DEPT_DEFAULT_API_ORIGIN}/api`;
 const DEPT_TOKEN = localStorage.getItem('token');
 const DEPT_ROLE_KEY = localStorage.getItem('roleKey') || '';
 const DEPARTMENT_NAME = window.DEPARTMENT_NAME || '';
-const DEPT_ORIGIN = 'http://localhost:5000';
+const DEPT_ORIGIN = DEPT_API_URL.replace(/\/api$/, '');
 
 if (!DEPT_TOKEN) {
     window.location.href = 'index.html';

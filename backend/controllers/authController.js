@@ -19,7 +19,9 @@ function normalizePhotoPath(rawPath) {
 
 function buildPhotoUrl(rawPath) {
     const normalized = normalizePhotoPath(rawPath);
-    return normalized ? `http://localhost:5000/${normalized}` : null;
+    if (!normalized) return null;
+    const publicBaseUrl = String(process.env.PUBLIC_APP_URL || '').replace(/\/+$/, '');
+    return publicBaseUrl ? `${publicBaseUrl}/${normalized}` : `/${normalized}`;
 }
 
 async function getOrCreateUserPreference(userId) {

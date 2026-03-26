@@ -33,5 +33,17 @@ Lab-QIS is a "Quality Intelligence Layer" designed to bridge the gap between raw
     npm install
 
 1. **Configure Environment**
-    Create a .env file based on .env.example
-    Add your PORT and DB_URL
+    Create a `.env` file based on `.env.example`
+    For PostgreSQL deployments, prefer `DATABASE_URL` plus `DB_DIALECT=postgres`
+    Set `JWT_SECRET` and `PUBLIC_APP_URL` so auth and uploaded file links work correctly
+
+## Render Deployment
+
+Render Postgres exposes an internal PostgreSQL connection string. Use that value for `DATABASE_URL`.
+
+- `DB_DIALECT=postgres`
+- `DATABASE_URL=<Render internal connection string>`
+- `JWT_SECRET=<long random secret>`
+- `PUBLIC_APP_URL=https://<your-service>.onrender.com`
+
+Render injects `PORT` automatically for the web service. `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, and `DB_NAME` are only needed if you decide not to use `DATABASE_URL`.

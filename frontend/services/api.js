@@ -1,4 +1,7 @@
-const API_URL = 'http://localhost:5000/api';
+const DEFAULT_API_ORIGIN = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:5000'
+    : window.location.origin;
+const API_URL = localStorage.getItem('apiBase') || `${DEFAULT_API_ORIGIN}/api`;
 
 function authHeaders() {
     const token = localStorage.getItem('token');

@@ -296,10 +296,12 @@
     </div>
 
     <script>
-        const API_CANDIDATES = [
+        const SAME_ORIGIN_API = `${window.location.origin}/api`;
+        const API_CANDIDATES = Array.from(new Set([
+            SAME_ORIGIN_API,
             'http://localhost:5000/api',
             'http://127.0.0.1:5000/api'
-        ];
+        ]));
         const MARKETING_MESSAGES = [
             'Real-time quality assurance tracking for every lab unit.',
             'ISO 15189 and SLIPTA compliance visibility in one dashboard.',
@@ -331,7 +333,8 @@
             let lastError = null;
             for (const apiBase of API_CANDIDATES) {
                 try {
-                    return await fetch(`${apiBase}${path}`, options);
+                    const response = await fetch(`${apiBase}${path}`, options);
+                    return { response, apiBase };
                 } catch (error) {
                     lastError = error;
                 }
@@ -340,8 +343,9 @@
         }
 
         function persistSession(data, options = {}) {
-            const { isDemo = false } = options;
+            const { apiBase = SAME_ORIGIN_API, isDemo = false } = options;
             localStorage.setItem('token', data.token);
+            localStorage.setItem('apiBase', apiBase);
             localStorage.setItem('userRole', data.user.role);
             localStorage.setItem('roleKey', data.user.roleKey || '');
             localStorage.setItem('labName', data.user.labName || '');
@@ -356,7 +360,7 @@
         }
 
         async function loginWithCredentials(email, password, options = {}) {
-            const response = await fetchWithApiFallback('/auth/login', {
+            const { response, apiBase } = await fetchWithApiFallback('/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -365,7 +369,7 @@
             if (!response.ok) {
                 throw new Error(data.message || 'Login failed.');
             }
-            persistSession(data, options);
+            persistSession(data, { ...options, apiBase });
             window.location.href = 'dashboard.html';
         }
 

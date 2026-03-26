@@ -115,7 +115,7 @@ app.use((err, req, res, next) => {
 // Sync Database and Start Server
 const PORT = process.env.PORT || 5000;
 
-// MySQL + Sequelize alter can repeatedly create keys across restarts.
+// Sequelize alter can repeatedly create keys across restarts.
 // Keep default sync safe; opt into alter explicitly when needed.
 const syncOptions = process.env.DB_SYNC_ALTER === 'true'
     ? { alter: true }
@@ -127,7 +127,7 @@ prepareUserRolesForSync()
     .then(async () => {
         await normalizeUserRoles();
         initWorkflowListeners();
-        console.log('MySQL Database connected & Models synced.');
+        console.log(`${sequelize.getDialect()} database connected & models synced.`);
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });

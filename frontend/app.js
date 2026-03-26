@@ -1,4 +1,8 @@
-const API_URL = 'http://localhost:5000/api';
+const DEFAULT_API_ORIGIN = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? 'http://localhost:5000'
+    : window.location.origin;
+const API_URL = localStorage.getItem('apiBase') || `${DEFAULT_API_ORIGIN}/api`;
+const APP_ORIGIN = API_URL.replace(/\/api$/, '');
 const token = localStorage.getItem('token');
 
 const ROLE_KEYS = Object.freeze({
@@ -1742,8 +1746,8 @@ function renderDocTable(docs) {
                         <div class="meta-row"><span>ISO Clause</span><strong>${doc.isoClause || 'N/A'}</strong></div>
                         <div class="meta-row"><span>Uploaded</span><strong>${new Date(doc.createdAt).toLocaleDateString()}</strong></div>
                         <div class="sop-actions">
-                            <a href="http://localhost:5000/${safePath}" target="_blank" class="btn btn-outline-primary">View</a>
-                            <button class="btn btn-outline-success" onclick="printSOP('http://localhost:5000/${safePath}')">Print</button>
+                            <a href="${APP_ORIGIN}/${safePath}" target="_blank" class="btn btn-outline-primary">View</a>
+                            <button class="btn btn-outline-success" onclick="printSOP('${APP_ORIGIN}/${safePath}')">Print</button>
                             ${canManageDocs ? `<button class="btn btn-outline-warning" onclick="editDocFromPayload('${encodedDoc}')">Edit</button>` : ''}
                         </div>
                     </div>
@@ -3156,7 +3160,7 @@ async function loadDeptView(deptName) {
                         <a href="${buildControlledSopUrl(doc.filePath, doc.title, deptName)}" target="_blank" class="btn btn-sm btn-outline-primary">
                             👁️ View
                         </a>
-                        <button onclick="printSOP('http://localhost:5000/${doc.filePath}')" class="btn btn-sm btn-outline-secondary">
+                        <button onclick="printSOP('${APP_ORIGIN}/${doc.filePath}')" class="btn btn-sm btn-outline-secondary">
                             🖨️ Print
                         </button>
                     </div>
@@ -3367,7 +3371,7 @@ function printSOP(pdfUrl) {
 
 function buildControlledSopUrl(filePath, title, department) {
     const safePath = String(filePath || '').replace(/\\/g, '/');
-    const fileUrl = `http://localhost:5000/${safePath}`;
+    const fileUrl = `${APP_ORIGIN}/${safePath}`;
     const params = new URLSearchParams({
         file: fileUrl,
         title: title || 'SOP',
