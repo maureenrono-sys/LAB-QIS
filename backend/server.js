@@ -29,6 +29,7 @@ const systemRoutes = require('./routes/systemRoutes');
 const { initWorkflowListeners } = require('./services/workflowListener');
 const { logErrorEvent } = require('./services/loggingService');
 const { prepareUserRolesForSync, normalizeUserRoles } = require('./services/roleNormalizationService');
+const { ensureSystemAdmin } = require('./services/systemAdminBootstrapService');
 const { requestAuditTrail } = require('./middleware/requestAuditTrailMiddleware');
 const { enforceMaintenanceMode } = require('./middleware/maintenanceModeMiddleware');
 
@@ -126,6 +127,7 @@ prepareUserRolesForSync()
     .then(() => sequelize.sync(syncOptions))
     .then(async () => {
         await normalizeUserRoles();
+        await ensureSystemAdmin();
         initWorkflowListeners();
         console.log(`${sequelize.getDialect()} database connected & models synced.`);
         app.listen(PORT, () => {

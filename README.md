@@ -45,5 +45,7 @@ Render Postgres exposes an internal PostgreSQL connection string. Use that value
 - `DATABASE_URL=<Render internal connection string>`
 - `JWT_SECRET=<long random secret>`
 - `PUBLIC_APP_URL=https://<your-service>.onrender.com`
+- `SYSTEM_ADMIN_EMAIL=<your admin email>`
+- `SYSTEM_ADMIN_PASSWORD=<your initial admin password>`
 
 Render injects `PORT` automatically for the web service. `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, and `DB_NAME` are only needed if you decide not to use `DATABASE_URL`.
