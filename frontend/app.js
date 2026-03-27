@@ -32,6 +32,7 @@ const ROLE_LABEL_BY_KEY = Object.freeze({
     [ROLE_KEYS.QUALITY_ASSURANCE_MANAGER]: 'Quality Assurance Manager',
     [ROLE_KEYS.LAB_SCIENTIST]: 'Laboratory Scientist'
 });
+const LAB_SUBSCRIPTION_STATUSES = Object.freeze(['trial', 'active', 'suspended']);
 
 const currentRoleLabel = localStorage.getItem('userRole') || '';
 const loggedInRoleKey = localStorage.getItem('roleKey') || ROLE_KEY_BY_LABEL[currentRoleLabel] || null;
@@ -54,6 +55,23 @@ function isAdminLabViewActive() {
 function clearAdminLabView() {
     localStorage.removeItem('adminViewLabId');
     localStorage.removeItem('adminViewLabName');
+}
+
+function normalizeLabSubscriptionStatus(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return LAB_SUBSCRIPTION_STATUSES.includes(normalized) ? normalized : 'trial';
+}
+
+function formatLabSubscriptionStatus(value) {
+    const status = normalizeLabSubscriptionStatus(value);
+    return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function getLabSubscriptionBadgeClass(value) {
+    const status = normalizeLabSubscriptionStatus(value);
+    if (status === 'active') return 'bg-success-subtle text-success-emphasis border border-success-subtle';
+    if (status === 'suspended') return 'bg-danger-subtle text-danger-emphasis border border-danger-subtle';
+    return 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
 }
 
 if (!window.__labScopedFetchPatched) {
@@ -2389,6 +2407,9 @@ async function loadAdminPortal() {
         const safeRegNo = String(lab.registrationNumber || '').replace(/"/g, '&quot;');
         const safeAddress = String(lab.address || '').replace(/"/g, '&quot;');
         const safeAcc = String(lab.accreditationStatus || '').replace(/"/g, '&quot;');
+        const safeSubscriptionStatus = normalizeLabSubscriptionStatus(lab.subscriptionStatus).replace(/"/g, '&quot;');
+        const subscriptionLabel = formatLabSubscriptionStatus(lab.subscriptionStatus);
+        const subscriptionBadgeClass = getLabSubscriptionBadgeClass(lab.subscriptionStatus);
 
         return `
             <div class="col-12 col-xxl-6">
@@ -2398,13 +2419,15 @@ async function loadAdminPortal() {
                             <h5 class="mb-0">${lab.labName}</h5>
                             <small class="text-muted">${lab.labType} | Users: ${lab.userCount}</small>
                         </div>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn btn-sm btn-outline-primary" onclick="loadLabUsers('${lab.id}', '${safeLabName}')">Users</button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="openAddUserModalFromMenu('${lab.id}')">Add User</button>
-                            <button class="btn btn-sm btn-outline-success" onclick="openLabWorkspace('${lab.id}', '${safeLabName}')">Dashboard</button>
-                            <button class="btn btn-sm btn-outline-warning" onclick="editLabFromAdmin('${lab.id}', '${safeLabName}', '${safeLabType}', '${safeRegNo}', '${safeAddress}', '${safeAcc}')">Edit Lab</button>
-                        </div>
+                        <span class="badge ${subscriptionBadgeClass}">${subscriptionLabel}</span>
                     </div>
+                    <div class="d-flex gap-2 flex-wrap mb-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadLabUsers('${lab.id}', '${safeLabName}')">Users</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="openAddUserModalFromMenu('${lab.id}')">Add User</button>
+                        <button class="btn btn-sm btn-outline-success" onclick="openLabWorkspace('${lab.id}', '${safeLabName}')">Dashboard</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="editLabFromAdmin('${lab.id}', '${safeLabName}', '${safeLabType}', '${safeRegNo}', '${safeAddress}', '${safeAcc}', '${safeSubscriptionStatus}')">Edit Lab</button>
+                    </div>
+                    <div class="small mb-2">Billing Status: <strong>${subscriptionLabel}</strong></div>
                     <div class="row g-2 small admin-kpi-grid">
                         <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>LQI:</strong> ${perf.labQualityIndex ?? 'N/A'}</div></div>
                         <div class="col-6 col-md-4"><div class="admin-kpi-chip"><strong>QC Pass:</strong> ${perf.qcPassRate ?? 'N/A'}%</div></div>
@@ -2771,7 +2794,7 @@ async function loadLabDashboardSnapshot(labId, labName) {
     `;
 }
 
-async function editLabFromAdmin(labId, labName, labType, regNo, address, accreditationStatus) {
+async function editLabFromAdmin(labId, labName, labType, regNo, address, accreditationStatus, subscriptionStatus) {
     ensureActionModals();
     document.getElementById('adminEditLabId').value = labId;
     document.getElementById('adminEditLabName').value = labName || '';
@@ -2779,6 +2802,7 @@ async function editLabFromAdmin(labId, labName, labType, regNo, address, accredi
     document.getElementById('adminEditLabReg').value = regNo || '';
     document.getElementById('adminEditLabAddress').value = address || '';
     document.getElementById('adminEditLabAcc').value = accreditationStatus || '';
+    document.getElementById('adminEditLabSubscription').value = normalizeLabSubscriptionStatus(subscriptionStatus);
     new bootstrap.Modal(document.getElementById('adminEditLabModal')).show();
 }
 
@@ -2894,6 +2918,8 @@ function ensureActionModals() {
                         <label class="form-label small">Lab Name</label><input id="adminEditLabName" class="form-control form-control-sm mb-2">
                         <label class="form-label small">Lab Type</label>
                         <select id="adminEditLabType" class="form-select form-select-sm mb-2"><option>Public</option><option>Private</option><option>Mid-level</option></select>
+                        <label class="form-label small">Billing Status</label>
+                        <select id="adminEditLabSubscription" class="form-select form-select-sm mb-2"><option value="trial">Trial</option><option value="active">Active</option><option value="suspended">Suspended</option></select>
                         <label class="form-label small">Registration Number</label><input id="adminEditLabReg" class="form-control form-control-sm mb-2">
                         <label class="form-label small">Address</label><textarea id="adminEditLabAddress" rows="2" class="form-control form-control-sm mb-2"></textarea>
                         <label class="form-label small">Accreditation Status</label><input id="adminEditLabAcc" class="form-control form-control-sm">
@@ -2929,6 +2955,8 @@ function ensureActionModals() {
                             <label class="form-label small">Lab Name</label><input id="adminCreateLabName" class="form-control form-control-sm mb-2" required>
                             <label class="form-label small">Lab Type</label>
                             <select id="adminCreateLabType" class="form-select form-select-sm mb-2"><option>Private</option><option>Public</option><option>Mid-level</option></select>
+                            <label class="form-label small">Billing Status</label>
+                            <select id="adminCreateLabSubscription" class="form-select form-select-sm mb-2"><option value="trial">Trial</option><option value="active">Active</option><option value="suspended">Suspended</option></select>
                             <label class="form-label small">Registration Number</label><input id="adminCreateLabReg" class="form-control form-control-sm mb-2">
                             <label class="form-label small">Accreditation Status</label><input id="adminCreateLabAcc" class="form-control form-control-sm mb-2">
                             <label class="form-label small">Address</label><textarea id="adminCreateLabAddress" rows="2" class="form-control form-control-sm"></textarea>
@@ -3017,7 +3045,8 @@ function ensureActionModals() {
                 labType: document.getElementById('adminEditLabType').value,
                 registrationNumber: document.getElementById('adminEditLabReg').value.trim(),
                 address: document.getElementById('adminEditLabAddress').value.trim(),
-                accreditationStatus: document.getElementById('adminEditLabAcc').value.trim()
+                accreditationStatus: document.getElementById('adminEditLabAcc').value.trim(),
+                subscriptionStatus: document.getElementById('adminEditLabSubscription').value
             })
         });
         const data = await res.json().catch(() => ({}));
@@ -3061,7 +3090,8 @@ function ensureActionModals() {
                 labType: document.getElementById('adminCreateLabType').value,
                 registrationNumber: document.getElementById('adminCreateLabReg').value.trim(),
                 address: document.getElementById('adminCreateLabAddress').value.trim(),
-                accreditationStatus: document.getElementById('adminCreateLabAcc').value.trim()
+                accreditationStatus: document.getElementById('adminCreateLabAcc').value.trim(),
+                subscriptionStatus: document.getElementById('adminCreateLabSubscription').value
             })
         });
         const data = await res.json().catch(() => ({}));

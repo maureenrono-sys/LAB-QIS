@@ -28,6 +28,12 @@ function resolveRoleLabel(value) {
     return null;
 }
 
+function resolveSubscriptionStatus(value, fallback = null) {
+    if (value === undefined || value === null || value === '') return fallback;
+    const normalized = String(value).trim().toLowerCase();
+    return ['trial', 'active', 'suspended'].includes(normalized) ? normalized : null;
+}
+
 async function getLatestSnapshotForLab(labId) {
     return DashboardSnapshot.findOne({
         where: { labId },
@@ -123,12 +129,18 @@ exports.createLab = async (req, res) => {
         const existing = await Laboratory.findOne({ where: { labName } });
         if (existing) return res.status(409).json({ message: 'A lab with this name already exists.' });
 
+        const subscriptionStatus = resolveSubscriptionStatus(req.body.subscriptionStatus, 'trial');
+        if (!subscriptionStatus) {
+            return res.status(400).json({ message: 'Invalid subscriptionStatus. Use trial, active, or suspended.' });
+        }
+
         const lab = await Laboratory.create({
             labName,
             labType,
             registrationNumber: sanitizeInput(req.body.registrationNumber, 60),
             address: sanitizeFreeText(req.body.address, 800),
-            accreditationStatus: sanitizeInput(req.body.accreditationStatus, 120)
+            accreditationStatus: sanitizeInput(req.body.accreditationStatus, 120),
+            subscriptionStatus
         });
 
         res.status(201).json({ message: 'Lab created.', lab });
@@ -220,6 +232,13 @@ exports.updateLab = async (req, res) => {
         if (req.body.registrationNumber !== undefined) updates.registrationNumber = sanitizeInput(req.body.registrationNumber, 60);
         if (req.body.address !== undefined) updates.address = sanitizeFreeText(req.body.address, 800);
         if (req.body.accreditationStatus !== undefined) updates.accreditationStatus = sanitizeInput(req.body.accreditationStatus, 120);
+        if (req.body.subscriptionStatus !== undefined) {
+            const subscriptionStatus = resolveSubscriptionStatus(req.body.subscriptionStatus);
+            if (!subscriptionStatus) {
+                return res.status(400).json({ message: 'Invalid subscriptionStatus. Use trial, active, or suspended.' });
+            }
+            updates.subscriptionStatus = subscriptionStatus;
+        }
 
         await lab.update(updates);
         res.json({ message: 'Lab updated.', lab });

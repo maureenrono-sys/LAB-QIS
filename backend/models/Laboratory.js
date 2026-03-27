@@ -25,6 +25,11 @@ const Laboratory = sequelize.define('Laboratory', {
     accreditationStatus: {
         type: DataTypes.STRING,
         defaultValue: 'Non-accredited'
+    },
+    subscriptionStatus: {
+        type: DataTypes.ENUM('trial', 'active', 'suspended'),
+        allowNull: false,
+        defaultValue: 'trial'
     }
 });
 

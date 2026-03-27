@@ -34,7 +34,8 @@ async function ensureSystemAdmin() {
             labType: 'Private',
             registrationNumber: `SYS-${Date.now()}`,
             address: 'Configured during deployment bootstrap',
-            accreditationStatus: 'Pending Setup'
+            accreditationStatus: 'Pending Setup',
+            subscriptionStatus: 'active'
         }
     });
 

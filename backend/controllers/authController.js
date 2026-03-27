@@ -12,6 +12,10 @@ function isAdministrator(user) {
     return getRoleKey(user?.role) === ROLE_KEYS.ADMIN;
 }
 
+function isSuspendedLab(lab) {
+    return String(lab?.subscriptionStatus || '').toLowerCase() === 'suspended';
+}
+
 function normalizePhotoPath(rawPath) {
     if (!rawPath) return null;
     return String(rawPath).replace(/\\/g, '/');
@@ -52,6 +56,7 @@ function makeUserPayload(user, preference, recentLogins) {
         role: user.role,
         roleKey,
         labName: user.Laboratory?.labName || '',
+        labSubscriptionStatus: user.Laboratory?.subscriptionStatus || 'trial',
         lab: user.Laboratory || null,
         profilePhotoPath: normalizePhotoPath(preference?.profilePhotoPath),
         profilePhotoUrl: buildPhotoUrl(preference?.profilePhotoPath),
@@ -79,6 +84,23 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ where: { email }, include: Laboratory });
 
         if (user && (await bcrypt.compare(password, user.password))) {
+            if (isSuspendedLab(user.Laboratory)) {
+                await logLoginEvent({
+                    labId: user.labId,
+                    userId: user.id,
+                    userEmail: user.email,
+                    userName: user.fullName,
+                    roleName: user.role,
+                    status: 'FAILED',
+                    failureReason: 'Lab subscription suspended',
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent']
+                });
+                return res.status(403).json({
+                    message: 'This laboratory account is suspended. Contact the administrator to reactivate access.'
+                });
+            }
+
             await logLoginEvent({
                 labId: user.labId,
                 userId: user.id,
@@ -207,7 +229,7 @@ exports.updateLabSettings = async (req, res) => {
             return res.status(403).json({ message: 'Only the Administrator can update lab settings.' });
         }
 
-        const allowed = ['labName', 'labType', 'address', 'registrationNumber', 'accreditationStatus'];
+        const allowed = ['labName', 'labType', 'address', 'registrationNumber', 'accreditationStatus', 'subscriptionStatus'];
         const updates = {};
         allowed.forEach((key) => {
             if (req.body[key] !== undefined) updates[key] = req.body[key];

@@ -25,7 +25,8 @@ exports.bootstrapDemoData = async (req, res) => {
                 labType: 'Private',
                 registrationNumber: 'LQIS-DEMO-001',
                 address: 'Demo Avenue, Quality City',
-                accreditationStatus: 'In Progress'
+                accreditationStatus: 'In Progress',
+                subscriptionStatus: 'trial'
             }
         });
 
